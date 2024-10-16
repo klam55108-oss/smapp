@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"regexp"
 	"smapp/user_service/repository"
-	"smapp/user_service/response.go"
+	"smapp/user_service/response"
 	"smapp/user_service/service"
 	"strings"
 
