@@ -1,0 +1,34 @@
+services:
+  user_service:
+    build:
+      context: .
+      dockerfile: user_service/Dockerfile
+    ports:
+      - 127.0.0.1:8081:8081
+    depends_on:
+      - user_db
+    env_file:
+      - user_service/.env
+    secrets:
+      - mysql_password
+      - jwt_secret
+
+  user_db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=user_db
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mysql_password
+    secrets:
+      - mysql_password
+
+  user_db_migrations:
+    container_name: user_db_migrations
+    image: flyway/flyway
+    volumes:
+      - ./user_service/migrations:/flyway/sql
+    depends_on:
+      - user_db
+    entrypoint: ["tail", "-f", "/dev/null"]
+    secrets:
+      - mysql_password
+

@@ -1,0 +1,12 @@
+services:
+  user_service:
+    develop:
+      watch:
+        - action: rebuild
+          path: user_service
+
+secrets:
+  mysql_password:
+    file: secrets/mysql_password.txt
+  jwt_secret:
+    file: secrets/jwt_secret.txt
