@@ -73,22 +73,6 @@ func getJWTConfig() (*jwtConfig, error) {
 	return &jwtConfig, nil
 }
 
-func NewDB(domainSourceName string) (*sql.DB, error) {
-	db, err := sql.Open("mysql", domainSourceName)
-	if err != nil {
-		return nil, err
-	}
-	// TODO: make timeout a constant
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-	err = common.WaitForDB(ctx, db)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("Connected to DB:", domainSourceName)
-	return db, nil
-}
-
 func main() {
 	mysqlConfig, err := getMysqlConfig()
 	if err != nil {
@@ -103,9 +87,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	db, err := NewDB(
+	db, err := sql.Open(
+		"mysql",
 		fmt.Sprintf("%s:%s@tcp(%s)/%s", mysqlConfig.user, mysqlConfig.password, mysqlConfig.host, mysqlConfig.db),
 	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	err = common.WaitForDB(ctx, db)
 	if err != nil {
 		log.Fatal(err)
 	}
