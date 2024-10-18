@@ -49,18 +49,6 @@ func getMysqlConfig() (*mysqlConfig, error) {
 	return &mysqlConfig, nil
 }
 
-func getQueryTimeoutConfig() (*queryTimeoutConfig, error) {
-	queryTimeoutConfig := queryTimeoutConfig{}
-	var err error
-	if queryTimeoutConfig.insert, err = common.GetEnvDuration("INSERT_QUERY_TIMEOUT"); err != nil {
-		return nil, err
-	}
-	if queryTimeoutConfig.get, err = common.GetEnvDuration("GET_QUERY_TIMEOUT"); err != nil {
-		return nil, err
-	}
-	return &queryTimeoutConfig, nil
-}
-
 func getJWTConfig() (*jwtConfig, error) {
 	jwtConfig := jwtConfig{}
 	var err error
@@ -78,11 +66,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	queryTimeoutConfig, err := getQueryTimeoutConfig()
+	jwtConfig, err := getJWTConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
-	jwtConfig, err := getJWTConfig()
+	defaultTimeout, err := common.GetEnvDuration("DEFAULT_TIMEOUT")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -102,11 +90,16 @@ func main() {
 	}
 	defer db.Close()
 
-	userRepository := repository.NewUser(db, queryTimeoutConfig.insert, queryTimeoutConfig.get)
+	userRepository := repository.NewUser(db)
 	jwtService := service.NewJWT(jwtConfig.secret, jwtConfig.expirationTime)
 	authService := service.NewAuth(userRepository, jwtService)
 
-	http.Handle("/signup", handlers.Signup(authService))
-	http.Handle("/login", handlers.Login(authService))
-	log.Fatal(http.ListenAndServe(":8081", nil))
+	srv := &http.Server{
+		Addr:        ":8081",
+		ReadTimeout: defaultTimeout,
+	}
+
+	http.Handle("/signup", common.WithRequestContextTimeout(handlers.Signup(authService), defaultTimeout))
+	http.Handle("/login", common.WithRequestContextTimeout(handlers.Login(authService), defaultTimeout))
+	log.Fatal(srv.ListenAndServe())
 }

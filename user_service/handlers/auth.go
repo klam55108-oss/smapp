@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
@@ -61,7 +62,7 @@ func Signup(auth *service.Auth) http.Handler {
 			return
 		}
 
-		token, err := auth.Signup(user.Name, user.Email, user.Handle, user.Password)
+		token, err := auth.Signup(r.Context(), user.Name, user.Email, user.Handle, user.Password)
 		if errors.Is(err, repository.ErrEmailExists) {
 			response.JSONError(w, "Email already exists", http.StatusConflict)
 			return
@@ -70,9 +71,14 @@ func Signup(auth *service.Auth) http.Handler {
 			response.JSONError(w, "Handle already exists", http.StatusConflict)
 			return
 		}
-		if errors.Is(err, repository.ErrDatabaseTimeout) {
+		if errors.Is(err, context.DeadlineExceeded) {
 			log.Println(err)
 			response.JSONErrorWithDefaultMessage(w, http.StatusGatewayTimeout)
+			return
+		}
+		if errors.Is(err, context.Canceled) {
+			// client disconnected
+			log.Println(err)
 			return
 		}
 		if err != nil {
@@ -147,14 +153,19 @@ func Login(auth *service.Auth) http.Handler {
 			return
 		}
 
-		token, err := auth.Login(user.Identifier, []byte(user.Password))
+		token, err := auth.Login(r.Context(), user.Identifier, []byte(user.Password))
 		if errors.Is(err, repository.ErrNoSuchUser) || errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			response.JSONError(w, wrongCredentialsMessage, http.StatusUnauthorized)
 			return
 		}
-		if errors.Is(err, repository.ErrDatabaseTimeout) {
+		if errors.Is(err, context.DeadlineExceeded) {
 			log.Println(err)
 			response.JSONErrorWithDefaultMessage(w, http.StatusGatewayTimeout)
+			return
+		}
+		if errors.Is(err, context.Canceled) {
+			// client disconnected
+			log.Println(err)
 			return
 		}
 		if err != nil {

@@ -6,43 +6,33 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 )
 
 var (
-	ErrEmailExists     = errors.New("email already exists")
-	ErrHandleExists    = errors.New("handle already exists")
-	ErrNoSuchUser      = errors.New("no such user")
-	ErrDatabaseTimeout = errors.New("database timeout")
+	ErrEmailExists  = errors.New("email already exists")
+	ErrHandleExists = errors.New("handle already exists")
+	ErrNoSuchUser   = errors.New("no such user")
 )
 
 type User struct {
-	db                 *sql.DB
-	insertQueryTimeout time.Duration
-	getQueryTimeout    time.Duration
+	db *sql.DB
 }
 
 func (u *User) Close() error {
 	return u.db.Close()
 }
 
-func NewUser(db *sql.DB, insertQueryTimeout, getQueryTimeout time.Duration) *User {
-	return &User{
-		db:                 db,
-		insertQueryTimeout: insertQueryTimeout,
-		getQueryTimeout:    getQueryTimeout,
-	}
+func NewUser(db *sql.DB) *User {
+	return &User{db: db}
 }
 
-func (u *User) CreateUser(name, email, handle, password_hash string) (uuid.UUID, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), u.insertQueryTimeout)
-	defer cancel()
+func (u *User) CreateUser(ctx context.Context, name, email, handle, password_hash string) (uuid.UUID, error) {
 	id, err := uuid.NewRandom()
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("insert user: %w", err)
+		return uuid.Nil, fmt.Errorf("insert user in db: %w", err)
 	}
 	_, err = u.db.ExecContext(
 		ctx,
@@ -52,26 +42,21 @@ func (u *User) CreateUser(name, email, handle, password_hash string) (uuid.UUID,
 	var mysqlError *mysql.MySQLError
 	if errors.As(err, &mysqlError) && mysqlError.Number == 1062 {
 		if strings.Contains(mysqlError.Message, "email_unique") {
-			return uuid.Nil, fmt.Errorf("insert user: %w", ErrEmailExists)
+			return uuid.Nil, fmt.Errorf("insert user in db: %w", ErrEmailExists)
 		} else if strings.Contains(mysqlError.Message, "handle_unique") {
-			return uuid.Nil, fmt.Errorf("insert user: %w", ErrHandleExists)
+			return uuid.Nil, fmt.Errorf("insert user in db: %w", ErrHandleExists)
 		} else {
-			return uuid.Nil, fmt.Errorf("insert user: unexprected unique constraint: %w", err)
+			return uuid.Nil, fmt.Errorf("insert user in db: unexprected unique constraint: %w", err)
 		}
 	}
-	if errors.Is(err, context.DeadlineExceeded) {
-		return uuid.Nil, fmt.Errorf("insert user: %w", ErrDatabaseTimeout)
-	}
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("insert user: %w", err)
+		return uuid.Nil, fmt.Errorf("insert user in db: %w", err)
 	}
 
 	return id, nil
 }
 
-func (u *User) GetAuthData(identifier string) (uuid.UUID, []byte, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), u.getQueryTimeout)
-	defer cancel()
+func (u *User) GetAuthData(ctx context.Context, identifier string) (uuid.UUID, []byte, error) {
 	var id uuid.UUID
 	var passwordHash []byte
 	err := u.db.QueryRowContext(
@@ -80,13 +65,10 @@ func (u *User) GetAuthData(identifier string) (uuid.UUID, []byte, error) {
 		identifier,
 	).Scan(&id, &passwordHash)
 	if errors.Is(err, sql.ErrNoRows) {
-		return uuid.Nil, nil, fmt.Errorf("get user credentials: %w", ErrNoSuchUser)
-	}
-	if errors.Is(err, context.DeadlineExceeded) {
-		return uuid.Nil, nil, fmt.Errorf("get user credentials: %w", ErrDatabaseTimeout)
+		return uuid.Nil, nil, fmt.Errorf("get auth data from db: %w", ErrNoSuchUser)
 	}
 	if err != nil {
-		return uuid.Nil, nil, fmt.Errorf("get user credentials: %w", err)
+		return uuid.Nil, nil, fmt.Errorf("get auth data from db: %w", err)
 	}
 	return id, passwordHash, nil
 }
