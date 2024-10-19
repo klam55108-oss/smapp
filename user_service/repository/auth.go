@@ -29,10 +29,10 @@ func NewUser(db *sql.DB) *User {
 	return &User{db: db}
 }
 
-func (u *User) CreateUser(ctx context.Context, name, email, handle, password_hash string) (uuid.UUID, error) {
+func (u *User) CreateUser(ctx context.Context, name, email, handle, password_hash string) (string, error) {
 	id, err := uuid.NewRandom()
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("insert user in db: %w", err)
+		return "", fmt.Errorf("insert user in db: %w", err)
 	}
 	_, err = u.db.ExecContext(
 		ctx,
@@ -42,21 +42,21 @@ func (u *User) CreateUser(ctx context.Context, name, email, handle, password_has
 	var mysqlError *mysql.MySQLError
 	if errors.As(err, &mysqlError) && mysqlError.Number == 1062 {
 		if strings.Contains(mysqlError.Message, "email_unique") {
-			return uuid.Nil, fmt.Errorf("insert user in db: %w", ErrEmailExists)
+			return "", fmt.Errorf("insert user in db: %w", ErrEmailExists)
 		} else if strings.Contains(mysqlError.Message, "handle_unique") {
-			return uuid.Nil, fmt.Errorf("insert user in db: %w", ErrHandleExists)
+			return "", fmt.Errorf("insert user in db: %w", ErrHandleExists)
 		} else {
-			return uuid.Nil, fmt.Errorf("insert user in db: unexprected unique constraint: %w", err)
+			return "", fmt.Errorf("insert user in db: unexprected unique constraint: %w", err)
 		}
 	}
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("insert user in db: %w", err)
+		return "", fmt.Errorf("insert user in db: %w", err)
 	}
 
-	return id, nil
+	return id.String(), nil
 }
 
-func (u *User) GetAuthData(ctx context.Context, identifier string) (uuid.UUID, []byte, error) {
+func (u *User) GetAuthData(ctx context.Context, identifier string) (string, []byte, error) {
 	var id uuid.UUID
 	var passwordHash []byte
 	err := u.db.QueryRowContext(
@@ -65,12 +65,12 @@ func (u *User) GetAuthData(ctx context.Context, identifier string) (uuid.UUID, [
 		identifier,
 	).Scan(&id, &passwordHash)
 	if errors.Is(err, sql.ErrNoRows) {
-		return uuid.Nil, nil, fmt.Errorf("get auth data from db: %w", ErrNoSuchUser)
+		return "", nil, fmt.Errorf("get auth data from db: %w", ErrNoSuchUser)
 	}
 	if err != nil {
-		return uuid.Nil, nil, fmt.Errorf("get auth data from db: %w", err)
+		return "", nil, fmt.Errorf("get auth data from db: %w", err)
 	}
-	return id, passwordHash, nil
+	return id.String(), passwordHash, nil
 }
 
 func getIdentiferType(identifier string) string {

@@ -29,7 +29,7 @@ func (svc *Auth) Signup(ctx context.Context, name, email, handle, password strin
 	if err != nil {
 		return "", fmt.Errorf("signup: %w", err)
 	}
-	token, err := svc.jwtService.GenerateJWT(id.String())
+	token, err := svc.jwtService.GenerateJWT(id)
 	if err != nil {
 		return "", fmt.Errorf("signup: %w", err)
 	}
@@ -45,7 +45,7 @@ func (svc *Auth) Login(ctx context.Context, identifier string, password []byte) 
 	if err != nil {
 		return "", fmt.Errorf("login: %w", err)
 	}
-	token, err := svc.jwtService.GenerateJWT(id.String())
+	token, err := svc.jwtService.GenerateJWT(id)
 	if err != nil {
 		return "", fmt.Errorf("login: %w", err)
 	}
