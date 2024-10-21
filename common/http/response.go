@@ -1,10 +1,8 @@
-package response
+package http
 
 import (
 	"encoding/json"
 	"net/http"
-
-	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 func JSONErrorFromMap(w http.ResponseWriter, jsonMap map[string]interface{}, code int) {
@@ -22,7 +20,7 @@ func JSONErrorWithDefaultMessage(w http.ResponseWriter, code int) {
 	JSONError(w, http.StatusText(code), code)
 }
 
-func JSONValidationError(w http.ResponseWriter, errors validation.Errors, code int) {
+func JSONValidationError(w http.ResponseWriter, errors map[string]error, code int) {
 	result := map[string]interface{}{
 		"status":  "error",
 		"message": "Validation failed",

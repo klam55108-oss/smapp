@@ -7,8 +7,8 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	commonhttp "smapp/common/http"
 	"smapp/user_service/repository"
-	"smapp/user_service/response"
 	"smapp/user_service/service"
 	"strings"
 
@@ -47,33 +47,33 @@ func Signup(auth *service.Auth) http.Handler {
 		var user SignupRequestBody
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
-			response.JSONError(w, "Invalid JSON body", http.StatusBadRequest)
+			commonhttp.JSONError(w, "Invalid JSON body", http.StatusBadRequest)
 			return
 		}
 		err = user.Validate()
 		if err != nil {
 			if e, ok := err.(validation.InternalError); ok {
 				log.Println(e.InternalError())
-				response.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
+				commonhttp.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
 				return
 			}
 			errors := (err.(validation.Errors).Filter()).(validation.Errors)
-			response.JSONValidationError(w, errors, http.StatusBadRequest)
+			commonhttp.JSONValidationError(w, errors, http.StatusBadRequest)
 			return
 		}
 
 		token, err := auth.Signup(r.Context(), user.Name, user.Email, user.Handle, user.Password)
 		if errors.Is(err, repository.ErrEmailExists) {
-			response.JSONError(w, "Email already exists", http.StatusConflict)
+			commonhttp.JSONError(w, "Email already exists", http.StatusConflict)
 			return
 		}
 		if errors.Is(err, repository.ErrHandleExists) {
-			response.JSONError(w, "Handle already exists", http.StatusConflict)
+			commonhttp.JSONError(w, "Handle already exists", http.StatusConflict)
 			return
 		}
 		if errors.Is(err, context.DeadlineExceeded) {
 			log.Println(err)
-			response.JSONErrorWithDefaultMessage(w, http.StatusGatewayTimeout)
+			commonhttp.JSONErrorWithDefaultMessage(w, http.StatusGatewayTimeout)
 			return
 		}
 		if errors.Is(err, context.Canceled) {
@@ -83,7 +83,7 @@ func Signup(auth *service.Auth) http.Handler {
 		}
 		if err != nil {
 			log.Println(err)
-			response.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
+			commonhttp.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
 			return
 		}
 
@@ -125,7 +125,7 @@ func Login(auth *service.Auth) http.Handler {
 		var user LoginRequestBody
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
-			response.JSONError(w, "Invalid JSON body", http.StatusBadRequest)
+			commonhttp.JSONError(w, "Invalid JSON body", http.StatusBadRequest)
 			return
 		}
 
@@ -134,7 +134,7 @@ func Login(auth *service.Auth) http.Handler {
 		if err != nil {
 			if e, ok := err.(validation.InternalError); ok {
 				log.Println(e.InternalError())
-				response.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
+				commonhttp.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
 				return
 			}
 			errors := err.(validation.Errors)
@@ -146,21 +146,21 @@ func Login(auth *service.Auth) http.Handler {
 				}
 			}
 			if len(errors) > 0 {
-				response.JSONValidationError(w, errors, http.StatusBadRequest)
+				commonhttp.JSONValidationError(w, errors, http.StatusBadRequest)
 				return
 			}
-			response.JSONError(w, wrongCredentialsMessage, http.StatusUnauthorized)
+			commonhttp.JSONError(w, wrongCredentialsMessage, http.StatusUnauthorized)
 			return
 		}
 
 		token, err := auth.Login(r.Context(), user.Identifier, []byte(user.Password))
 		if errors.Is(err, repository.ErrNoSuchUser) || errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			response.JSONError(w, wrongCredentialsMessage, http.StatusUnauthorized)
+			commonhttp.JSONError(w, wrongCredentialsMessage, http.StatusUnauthorized)
 			return
 		}
 		if errors.Is(err, context.DeadlineExceeded) {
 			log.Println(err)
-			response.JSONErrorWithDefaultMessage(w, http.StatusGatewayTimeout)
+			commonhttp.JSONErrorWithDefaultMessage(w, http.StatusGatewayTimeout)
 			return
 		}
 		if errors.Is(err, context.Canceled) {
@@ -170,7 +170,7 @@ func Login(auth *service.Auth) http.Handler {
 		}
 		if err != nil {
 			log.Println(err)
-			response.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
+			commonhttp.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
 			return
 		}
 

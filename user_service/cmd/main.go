@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"time"
 
-	"smapp/common"
+	commondb "smapp/common/db"
+	commonenv "smapp/common/env"
+	commonhttp "smapp/common/http"
 	"smapp/user_service/handlers"
 	"smapp/user_service/repository"
 	"smapp/user_service/service"
@@ -21,11 +23,6 @@ type mysqlConfig struct {
 	db       string
 }
 
-type queryTimeoutConfig struct {
-	insert time.Duration
-	get    time.Duration
-}
-
 type jwtConfig struct {
 	secret         []byte
 	expirationTime time.Duration
@@ -34,16 +31,16 @@ type jwtConfig struct {
 func getMysqlConfig() (*mysqlConfig, error) {
 	mysqlConfig := mysqlConfig{}
 	var err error
-	if mysqlConfig.host, err = common.GetEnv("MYSQL_HOST"); err != nil {
+	if mysqlConfig.host, err = commonenv.GetEnv("MYSQL_HOST"); err != nil {
 		return nil, err
 	}
-	if mysqlConfig.user, err = common.GetEnv("MYSQL_USER"); err != nil {
+	if mysqlConfig.user, err = commonenv.GetEnv("MYSQL_USER"); err != nil {
 		return nil, err
 	}
-	if mysqlConfig.password, err = common.GetSecret("mysql_password"); err != nil {
+	if mysqlConfig.password, err = commonenv.GetSecret("mysql_password"); err != nil {
 		return nil, err
 	}
-	if mysqlConfig.db, err = common.GetEnv("MYSQL_DB"); err != nil {
+	if mysqlConfig.db, err = commonenv.GetEnv("MYSQL_DB"); err != nil {
 		return nil, err
 	}
 	return &mysqlConfig, nil
@@ -52,10 +49,10 @@ func getMysqlConfig() (*mysqlConfig, error) {
 func getJWTConfig() (*jwtConfig, error) {
 	jwtConfig := jwtConfig{}
 	var err error
-	if jwtConfig.secret, err = common.GetSecret("jwt_secret"); err != nil {
+	if jwtConfig.secret, err = commonenv.GetSecret("jwt_secret"); err != nil {
 		return nil, err
 	}
-	if jwtConfig.expirationTime, err = common.GetEnvDuration("JWT_EXPIRATION_TIME"); err != nil {
+	if jwtConfig.expirationTime, err = commonenv.GetEnvDuration("JWT_EXPIRATION_TIME"); err != nil {
 		return nil, err
 	}
 	return &jwtConfig, nil
@@ -70,7 +67,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defaultTimeout, err := common.GetEnvDuration("DEFAULT_TIMEOUT")
+	defaultTimeout, err := commonenv.GetEnvDuration("DEFAULT_TIMEOUT")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -84,7 +81,7 @@ func main() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	err = common.WaitForDB(ctx, db)
+	err = commondb.WaitForDB(ctx, db)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -99,7 +96,7 @@ func main() {
 		ReadTimeout: defaultTimeout,
 	}
 
-	http.Handle("/signup", common.WithRequestContextTimeout(handlers.Signup(authService), defaultTimeout))
-	http.Handle("/login", common.WithRequestContextTimeout(handlers.Login(authService), defaultTimeout))
+	http.Handle("/signup", commonhttp.WithRequestContextTimeout(handlers.Signup(authService), defaultTimeout))
+	http.Handle("/login", commonhttp.WithRequestContextTimeout(handlers.Login(authService), defaultTimeout))
 	log.Fatal(srv.ListenAndServe())
 }
