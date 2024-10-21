@@ -87,13 +87,11 @@ func Signup(auth *service.Auth) http.Handler {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		body := map[string]interface{}{
+		response := map[string]interface{}{
 			"status": "success",
 			"data":   map[string]string{"token": token},
 		}
-		json.NewEncoder(w).Encode(body)
+		commonhttp.JSONResponse(w, response, http.StatusCreated)
 	})
 }
 
@@ -174,12 +172,10 @@ func Login(auth *service.Auth) http.Handler {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		body := map[string]interface{}{
+		response := map[string]interface{}{
 			"status": "success",
 			"data":   map[string]string{"token": token},
 		}
-		json.NewEncoder(w).Encode(body)
+		commonhttp.JSONResponse(w, response, http.StatusOK)
 	})
 }

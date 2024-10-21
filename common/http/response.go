@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func JSONErrorFromMap(w http.ResponseWriter, jsonMap map[string]interface{}, code int) {
+func JSONResponse(w http.ResponseWriter, jsonMap map[string]interface{}, code int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(code)
@@ -13,7 +13,7 @@ func JSONErrorFromMap(w http.ResponseWriter, jsonMap map[string]interface{}, cod
 }
 
 func JSONError(w http.ResponseWriter, error string, code int) {
-	JSONErrorFromMap(w, map[string]interface{}{"status": "error", "message": error}, code)
+	JSONResponse(w, map[string]interface{}{"status": "error", "message": error}, code)
 }
 
 func JSONErrorWithDefaultMessage(w http.ResponseWriter, code int) {
@@ -29,5 +29,5 @@ func JSONValidationError(w http.ResponseWriter, errors map[string]error, code in
 	for key, err := range errors {
 		result["errors"].(map[string]string)[key] = err.Error()
 	}
-	JSONErrorFromMap(w, result, code)
+	JSONResponse(w, result, code)
 }

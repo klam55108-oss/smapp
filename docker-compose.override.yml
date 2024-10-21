@@ -4,6 +4,8 @@ services:
       watch:
         - action: rebuild
           path: user_service
+        - action: rebuild
+          path: common
 
 secrets:
   mysql_password:
