@@ -32,3 +32,34 @@ services:
     secrets:
       - mysql_password
 
+  post_service:
+    build:
+      context: .
+      dockerfile: post_service/Dockerfile
+    ports:
+      - 127.0.0.1:8082:8082
+    depends_on:
+      - post_db
+    env_file:
+      - post_service/.env
+    secrets:
+      - mysql_password
+
+  post_db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=post_db
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mysql_password
+    secrets:
+      - mysql_password
+
+  post_db_migrations:
+    container_name: post_db_migrations
+    image: flyway/flyway
+    volumes:
+      - ./post_service/migrations:/flyway/sql
+    depends_on:
+      - post_db
+    entrypoint: ["tail", "-f", "/dev/null"]
+    secrets:
+      - mysql_password

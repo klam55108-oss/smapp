@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
-
 	commondb "smapp/common/db"
 	commonenv "smapp/common/env"
 	commonhttp "smapp/common/http"
-	"smapp/user_service/handlers"
-	"smapp/user_service/repository"
-	"smapp/user_service/service"
+	"smapp/post_service/handlers"
+	"smapp/post_service/repository"
+	"smapp/post_service/service"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -23,11 +22,6 @@ type mysqlConfig struct {
 	user     string
 	password []byte
 	db       string
-}
-
-type jwtConfig struct {
-	secret         []byte
-	expirationTime time.Duration
 }
 
 func getMysqlConfig() (*mysqlConfig, error) {
@@ -48,24 +42,8 @@ func getMysqlConfig() (*mysqlConfig, error) {
 	return &mysqlConfig, nil
 }
 
-func getJWTConfig() (*jwtConfig, error) {
-	jwtConfig := jwtConfig{}
-	var err error
-	if jwtConfig.secret, err = commonenv.GetSecret("jwt_secret"); err != nil {
-		return nil, err
-	}
-	if jwtConfig.expirationTime, err = commonenv.GetEnvDuration("JWT_EXPIRATION_TIME"); err != nil {
-		return nil, err
-	}
-	return &jwtConfig, nil
-}
-
 func main() {
 	mysqlConfig, err := getMysqlConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
-	jwtConfig, err := getJWTConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -89,16 +67,9 @@ func main() {
 	}
 	defer db.Close()
 
-	userRepository := repository.NewUser(db)
-	jwtService := service.NewJWT(jwtConfig.secret, jwtConfig.expirationTime)
-	authService := service.NewAuth(userRepository, jwtService)
+	postRepository := repository.NewPost(db)
+	postService := service.NewPost(postRepository)
 
-	srv := &http.Server{
-		Addr:        ":8081",
-		ReadTimeout: defaultTimeout,
-	}
-
-	http.Handle("/signup", commonhttp.WithRequestContextTimeout(handlers.Signup(authService), defaultTimeout))
-	http.Handle("/login", commonhttp.WithRequestContextTimeout(handlers.Login(authService), defaultTimeout))
-	log.Fatal(srv.ListenAndServe())
+	http.Handle("/createPost", commonhttp.WithRequestContextTimeout(handlers.CreatePost(postService), defaultTimeout))
+	log.Fatal(http.ListenAndServe(":8082", nil))
 }

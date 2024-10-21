@@ -7,6 +7,14 @@ services:
         - action: rebuild
           path: common
 
+  post_service:
+    develop:
+      watch:
+        - action: rebuild
+          path: post_service
+        - action: rebuild
+          path: common
+
 secrets:
   mysql_password:
     file: secrets/mysql_password.txt
