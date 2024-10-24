@@ -70,6 +70,11 @@ func main() {
 	postRepository := repository.NewPost(db)
 	postService := service.NewPost(postRepository)
 
+	srv := &http.Server{
+		Addr:        ":8082",
+		ReadTimeout: defaultTimeout,
+	}
+
 	http.Handle("/createPost", commonhttp.WithRequestContextTimeout(handlers.CreatePost(postService), defaultTimeout))
-	log.Fatal(http.ListenAndServe(":8082", nil))
+	log.Fatal(srv.ListenAndServe())
 }
