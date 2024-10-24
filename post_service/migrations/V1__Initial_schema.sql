@@ -7,7 +7,8 @@ CREATE TABLE posts (
 
 CREATE TABLE likes (
     id BINARY(16) PRIMARY KEY,
-    post_id BINARY(16) NOT NULL,
+    liked_id BINARY(16) NOT NULL,
+    liked_type ENUM('post', 'comment') NOT NULL,
     author_id BINARY(16) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
