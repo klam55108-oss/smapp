@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 	commonhttp "smapp/common/http"
-	"smapp/post_service/service"
+	"smapp/post/service"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"

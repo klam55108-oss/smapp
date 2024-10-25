@@ -1,4 +1,4 @@
-module smapp/user_service
+module smapp/user
 
 go 1.22.6
 

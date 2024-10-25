@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"regexp"
 	commonhttp "smapp/common/http"
-	"smapp/user_service/repository"
-	"smapp/user_service/service"
+	"smapp/user/repository"
+	"smapp/user/service"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"

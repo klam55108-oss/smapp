@@ -1,14 +1,14 @@
 services:
-  user_service:
+  user:
     build:
       context: .
-      dockerfile: user_service/Dockerfile
+      dockerfile: user/Dockerfile
     ports:
       - 127.0.0.1:8081:8081
     depends_on:
       - user_db
     env_file:
-      - user_service/.env
+      - user/.env
     secrets:
       - mysql_password
       - jwt_secret
@@ -25,23 +25,23 @@ services:
     container_name: user_db_migrations
     image: flyway/flyway
     volumes:
-      - ./user_service/migrations:/flyway/sql
+      - ./user/migrations:/flyway/sql
     depends_on:
       - user_db
     entrypoint: ["tail", "-f", "/dev/null"]
     secrets:
       - mysql_password
 
-  post_service:
+  post:
     build:
       context: .
-      dockerfile: post_service/Dockerfile
+      dockerfile: post/Dockerfile
     ports:
       - 127.0.0.1:8082:8082
     depends_on:
       - post_db
     env_file:
-      - post_service/.env
+      - post/.env
     secrets:
       - mysql_password
 
@@ -57,7 +57,7 @@ services:
     container_name: post_db_migrations
     image: flyway/flyway
     volumes:
-      - ./post_service/migrations:/flyway/sql
+      - ./post/migrations:/flyway/sql
     depends_on:
       - post_db
     entrypoint: ["tail", "-f", "/dev/null"]
@@ -67,4 +67,4 @@ services:
   image_service_grpc:
     build:
       context: .
-      dockerfile: image_service/Dockerfile.grpc
+      dockerfile: image/Dockerfile.grpc

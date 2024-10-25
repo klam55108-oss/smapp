@@ -11,9 +11,9 @@ import (
 	commondb "smapp/common/db"
 	commonenv "smapp/common/env"
 	commonhttp "smapp/common/http"
-	"smapp/user_service/handlers"
-	"smapp/user_service/repository"
-	"smapp/user_service/service"
+	"smapp/user/handlers"
+	"smapp/user/repository"
+	"smapp/user/service"
 
 	_ "github.com/go-sql-driver/mysql"
 )

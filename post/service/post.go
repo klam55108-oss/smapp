@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	"smapp/post_service/repository"
+	"smapp/post/repository"
 
 	imagePB "smapp/common/grpc/image"
 )

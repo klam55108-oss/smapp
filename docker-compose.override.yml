@@ -1,17 +1,17 @@
 services:
-  user_service:
+  user:
     develop:
       watch:
         - action: rebuild
-          path: user_service
+          path: user
         - action: rebuild
           path: common
 
-  post_service:
+  post:
     develop:
       watch:
         - action: rebuild
-          path: post_service
+          path: post
         - action: rebuild
           path: common
 
@@ -19,7 +19,7 @@ services:
     develop:
       watch:
         - action: rebuild
-          path: image_service
+          path: image
         - action: rebuild
           path: common
 

@@ -10,9 +10,9 @@ import (
 	commonenv "smapp/common/env"
 	imagePB "smapp/common/grpc/image"
 	commonhttp "smapp/common/http"
-	"smapp/post_service/handlers"
-	"smapp/post_service/repository"
-	"smapp/post_service/service"
+	"smapp/post/handlers"
+	"smapp/post/repository"
+	"smapp/post/service"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"

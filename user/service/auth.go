@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	"smapp/user_service/repository"
+	"smapp/user/repository"
 
 	"golang.org/x/crypto/bcrypt"
 )
