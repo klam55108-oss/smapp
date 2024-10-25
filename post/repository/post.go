@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -21,17 +20,9 @@ func NewPost(db *sql.DB) *Post {
 	return &Post{db: db}
 }
 
-// tx operations may return sql.ErrTxDone if the context is done. Return a context error instead for clarity in the service layer
-func changeErrIfCtxDone(ctx context.Context, err error) error {
-	if ctxErr := ctx.Err(); ctxErr != nil && errors.Is(err, sql.ErrTxDone) {
-		return ctxErr
-	}
-	return err
-}
-
-func (p *Post) CreatePost(ctx context.Context, body, author_id string, image_urls []string) (string, error) {
+func (p *Post) Create(ctx context.Context, body, author_id string, image_urls []string) (string, error) {
 	fail := func(err error) (string, error) {
-		return "", fmt.Errorf("create post: %w", err)
+		return "", fmt.Errorf("add post to db: %w", err)
 	}
 
 	tx, err := p.db.BeginTx(ctx, nil)

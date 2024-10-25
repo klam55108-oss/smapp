@@ -25,7 +25,7 @@ func (svc *Auth) Signup(ctx context.Context, name, email, handle, password strin
 	if err != nil {
 		return "", fmt.Errorf("signup: %w", err)
 	}
-	id, err := svc.userRepository.CreateUser(ctx, name, email, handle, string(passwordHash))
+	id, err := svc.userRepository.Create(ctx, name, email, handle, string(passwordHash))
 	if err != nil {
 		return "", fmt.Errorf("signup: %w", err)
 	}

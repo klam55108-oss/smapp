@@ -22,7 +22,7 @@ func NewPost(postRepository *repository.Post, imageClient imagePB.ImageClient) *
 
 var ErrImageNotFound = fmt.Errorf("image not found")
 
-func (svc *Post) CreatePost(ctx context.Context, body string, author_id string, image_urls []string) (string, error) {
+func (svc *Post) Create(ctx context.Context, body string, author_id string, image_urls []string) (string, error) {
 	fail := func(err error) (string, error) {
 		return "", fmt.Errorf("create post: %w", err)
 	}
@@ -39,7 +39,7 @@ func (svc *Post) CreatePost(ctx context.Context, body string, author_id string, 
 		}
 	}
 
-	id, err := svc.postRepository.CreatePost(ctx, body, author_id, image_urls)
+	id, err := svc.postRepository.Create(ctx, body, author_id, image_urls)
 	if err != nil {
 		return fail(err)
 	}

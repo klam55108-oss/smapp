@@ -29,7 +29,7 @@ func NewUser(db *sql.DB) *User {
 	return &User{db: db}
 }
 
-func (u *User) CreateUser(ctx context.Context, name, email, handle, password_hash string) (string, error) {
+func (u *User) Create(ctx context.Context, name, email, handle, password_hash string) (string, error) {
 	id, err := uuid.NewRandom()
 	if err != nil {
 		return "", fmt.Errorf("insert user in db: %w", err)
