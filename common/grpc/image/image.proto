@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option go_package = "smapp/common/grpc/image";
+
+service Image {
+    rpc VerifyURL(URL) returns (Exists);
+}
+
+message URL {
+    string url = 1;
+}
+
+message Exists {
+    bool exists = 1;
+}

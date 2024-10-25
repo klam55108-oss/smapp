@@ -8,6 +8,7 @@ import (
 	"net/http"
 	commondb "smapp/common/db"
 	commonenv "smapp/common/env"
+	imagePB "smapp/common/grpc/image"
 	commonhttp "smapp/common/http"
 	"smapp/post_service/handlers"
 	"smapp/post_service/repository"
@@ -15,6 +16,8 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type mysqlConfig struct {
@@ -68,7 +71,15 @@ func main() {
 	defer db.Close()
 
 	postRepository := repository.NewPost(db)
-	postService := service.NewPost(postRepository)
+
+	conn, err := grpc.NewClient("image_service_grpc:50055", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+	imageClient := imagePB.NewImageClient(conn)
+
+	postService := service.NewPost(postRepository, imageClient)
 
 	srv := &http.Server{
 		Addr:        ":8082",

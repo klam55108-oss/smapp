@@ -15,6 +15,14 @@ services:
         - action: rebuild
           path: common
 
+  image_service_grpc:
+    develop:
+      watch:
+        - action: rebuild
+          path: image_service
+        - action: rebuild
+          path: common
+
 secrets:
   mysql_password:
     file: secrets/mysql_password.txt

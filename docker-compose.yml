@@ -63,3 +63,8 @@ services:
     entrypoint: ["tail", "-f", "/dev/null"]
     secrets:
       - mysql_password
+  
+  image_service_grpc:
+    build:
+      context: .
+      dockerfile: image_service/Dockerfile.grpc
