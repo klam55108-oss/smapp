@@ -15,6 +15,8 @@ import (
 	"smapp/user/repository"
 	"smapp/user/service"
 
+	"github.com/gorilla/mux"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -93,12 +95,14 @@ func main() {
 	jwtService := service.NewJWT(jwtConfig.secret, jwtConfig.expirationTime)
 	authService := service.NewAuth(userRepository, jwtService)
 
+	r := mux.NewRouter()
+	r.Handle("/signup", handlers.Signup(authService)).Methods(http.MethodPost)
+	r.Handle("/login", handlers.Login(authService)).Methods(http.MethodPost)
+	r.Use(commonhttp.WithRequestContextTimeout(defaultTimeout))
 	srv := &http.Server{
 		Addr:        ":8081",
+		Handler:     r,
 		ReadTimeout: defaultTimeout,
 	}
-
-	http.Handle("/signup", commonhttp.WithRequestContextTimeout(handlers.Signup(authService), defaultTimeout))
-	http.Handle("/login", commonhttp.WithRequestContextTimeout(handlers.Login(authService), defaultTimeout))
 	log.Fatal(srv.ListenAndServe())
 }

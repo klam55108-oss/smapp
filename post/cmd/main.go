@@ -16,6 +16,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/mux"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -70,22 +71,23 @@ func main() {
 	}
 	defer db.Close()
 
-	postRepository := repository.NewPost(db)
-
 	conn, err := grpc.NewClient("image_service_grpc:50055", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer conn.Close()
 	imageClient := imagePB.NewImageClient(conn)
-
+	postRepository := repository.NewPost(db)
 	postService := service.NewPost(postRepository, imageClient)
+	postHandler := handlers.CreatePost(postService)
 
+	r := mux.NewRouter()
+	r.Handle("/post", postHandler).Methods(http.MethodPost)
+	r.Use(commonhttp.WithRequestContextTimeout(defaultTimeout))
 	srv := &http.Server{
 		Addr:        ":8082",
+		Handler:     r,
 		ReadTimeout: defaultTimeout,
 	}
-
-	http.Handle("/createPost", commonhttp.WithRequestContextTimeout(handlers.CreatePost(postService), defaultTimeout))
 	log.Fatal(srv.ListenAndServe())
 }
