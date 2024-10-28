@@ -69,7 +69,7 @@ func CreatePost(postService *service.Post) http.Handler {
 		}
 
 		id, err := postService.Create(r.Context(), post.Body, post.AuthorID, post.ImageURLs)
-		if errors.Is(err, service.ErrImageNotFound) {
+		if errors.Is(err, service.ErrImageDoesNotExist) {
 			commonhttp.JSONError(w, "One or more provided image URLs are invalid or inaccessible", http.StatusBadRequest)
 			log.Println(err)
 			return

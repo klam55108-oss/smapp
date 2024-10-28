@@ -152,7 +152,7 @@ func Login(auth *service.Auth) http.Handler {
 		}
 
 		token, err := auth.Login(r.Context(), user.Identifier, []byte(user.Password))
-		if errors.Is(err, repository.ErrNoSuchUser) || errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+		if errors.Is(err, repository.ErrUserDoesNotExist) || errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			commonhttp.JSONError(w, wrongCredentialsMessage, http.StatusUnauthorized)
 			return
 		}

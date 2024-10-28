@@ -20,7 +20,7 @@ func NewPost(postRepository *repository.Post, imageClient imagePB.ImageClient) *
 	}
 }
 
-var ErrImageNotFound = fmt.Errorf("image not found")
+var ErrImageDoesNotExist = fmt.Errorf("image does not exist")
 
 func (svc *Post) Create(ctx context.Context, body string, author_id string, image_urls []string) (string, error) {
 	fail := func(err error) (string, error) {
@@ -35,7 +35,7 @@ func (svc *Post) Create(ctx context.Context, body string, author_id string, imag
 			return fail(err)
 		}
 		if !exists.Exists {
-			return fail(fmt.Errorf("%w: %s", ErrImageNotFound, url))
+			return fail(fmt.Errorf("%w: %s", ErrImageDoesNotExist, url))
 		}
 	}
 

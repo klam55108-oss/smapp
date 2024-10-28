@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	ErrEmailExists  = errors.New("email already exists")
-	ErrHandleExists = errors.New("handle already exists")
-	ErrNoSuchUser   = errors.New("no such user")
+	ErrEmailExists      = errors.New("email already exists")
+	ErrHandleExists     = errors.New("handle already exists")
+	ErrUserDoesNotExist = errors.New("user does not exist")
 )
 
 type User struct {
@@ -65,7 +65,7 @@ func (u *User) GetAuthData(ctx context.Context, identifier string) (string, []by
 		identifier,
 	).Scan(&id, &passwordHash)
 	if errors.Is(err, sql.ErrNoRows) {
-		return "", nil, fmt.Errorf("get auth data from db: %w", ErrNoSuchUser)
+		return "", nil, fmt.Errorf("get auth data from db: %w", ErrUserDoesNotExist)
 	}
 	if err != nil {
 		return "", nil, fmt.Errorf("get auth data from db: %w", err)
