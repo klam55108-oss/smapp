@@ -3,6 +3,7 @@ package env
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -24,6 +25,18 @@ func GetEnvDuration(key string) (time.Duration, error) {
 		return 0, fmt.Errorf("parse %s: %w", key, err)
 	}
 	return duration, nil
+}
+
+func GetEnvInt64(key string) (int64, error) {
+	value, err := GetEnv(key)
+	if err != nil {
+		return 0, err
+	}
+	intValue, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse %s: %w", key, err)
+	}
+	return intValue, nil
 }
 
 func GetSecret(secretName string) ([]byte, error) {

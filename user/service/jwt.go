@@ -9,14 +9,14 @@ import (
 )
 
 type JWT struct {
-	secret         []byte
-	expirationTime time.Duration
+	secret []byte
+	ttl    time.Duration
 }
 
-func NewJWT(secret []byte, expirationTime time.Duration) *JWT {
+func NewJWT(secret []byte, ttl time.Duration) *JWT {
 	return &JWT{
-		secret:         secret,
-		expirationTime: expirationTime,
+		secret: secret,
+		ttl:    ttl,
 	}
 }
 
@@ -24,7 +24,7 @@ func (svc *JWT) GenerateJWT(userID string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": userID,
 		"iat": time.Now().Unix(),
-		"exp": time.Now().Add(svc.expirationTime).Unix(),
+		"exp": time.Now().Add(svc.ttl).Unix(),
 	})
 	return token.SignedString(svc.secret)
 }

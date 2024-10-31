@@ -63,8 +63,17 @@ services:
     entrypoint: ["tail", "-f", "/dev/null"]
     secrets:
       - mysql_password
+
+  image:
+    build:
+      context: .
+      dockerfile: image/Dockerfile.http
+    ports:
+      - 127.0.0.1:8085:8085
+    env_file:
+      - image/.env
   
-  image_service_grpc:
+  image_grpc:
     build:
       context: .
       dockerfile: image/Dockerfile.grpc

@@ -28,8 +28,8 @@ type mysqlConfig struct {
 }
 
 type jwtConfig struct {
-	secret         []byte
-	expirationTime time.Duration
+	secret []byte
+	ttl    time.Duration
 }
 
 func getMysqlConfig() (*mysqlConfig, error) {
@@ -56,7 +56,7 @@ func getJWTConfig() (*jwtConfig, error) {
 	if jwtConfig.secret, err = commonenv.GetSecret("jwt_secret"); err != nil {
 		return nil, err
 	}
-	if jwtConfig.expirationTime, err = commonenv.GetEnvDuration("JWT_EXPIRATION_TIME"); err != nil {
+	if jwtConfig.ttl, err = commonenv.GetEnvDuration("JWT_TTL"); err != nil {
 		return nil, err
 	}
 	return &jwtConfig, nil
@@ -92,7 +92,7 @@ func main() {
 	defer db.Close()
 
 	userRepository := repository.NewUser(db)
-	jwtService := service.NewJWT(jwtConfig.secret, jwtConfig.expirationTime)
+	jwtService := service.NewJWT(jwtConfig.secret, jwtConfig.ttl)
 	authService := service.NewAuth(userRepository, jwtService)
 
 	r := mux.NewRouter()

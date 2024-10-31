@@ -15,7 +15,17 @@ services:
         - action: rebuild
           path: common
 
-  image_service_grpc:
+  image:
+    volumes:
+      - ~/.aws:/root/.aws
+    develop:
+      watch:
+        - action: rebuild
+          path: image
+        - action: rebuild
+          path: common
+
+  image_grpc:
     develop:
       watch:
         - action: rebuild
@@ -28,3 +38,4 @@ secrets:
     file: secrets/mysql_password.txt
   jwt_secret:
     file: secrets/jwt_secret.txt
+  
