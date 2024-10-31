@@ -58,11 +58,11 @@ func main() {
 	r := mux.NewRouter()
 	r.Handle(
 		"/upload-form/profile",
-		handlers.GenerateUploadForm(generateUploadFormService, profileImgLimit),
+		handlers.GenerateUploadForm(generateUploadFormService, "profile", profileImgLimit),
 	).Methods(http.MethodPost)
 	r.Handle(
 		"/upload-form/post",
-		handlers.GenerateUploadForm(generateUploadFormService, postImgLimit),
+		handlers.GenerateUploadForm(generateUploadFormService, "post", postImgLimit),
 	).Methods(http.MethodPost)
 	srv := &http.Server{
 		Addr:        ":8085",

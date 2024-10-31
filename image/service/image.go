@@ -27,7 +27,7 @@ func NewGenerateUploadForm(creds *aws.Credentials, policyTTL time.Duration, buck
 	}
 }
 
-func (svc *GenerateUploadForm) GetForm(ctx context.Context, userID string, contentLengthLimit int64) (map[string]interface{}, error) {
+func (svc *GenerateUploadForm) GetForm(ctx context.Context, imgPurpose, userID string, contentLengthLimit int64) (map[string]interface{}, error) {
 	fail := func(err error) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("get upload form: %w", err)
 	}
@@ -36,7 +36,7 @@ func (svc *GenerateUploadForm) GetForm(ctx context.Context, userID string, conte
 	if err != nil {
 		return fail(err)
 	}
-	key := fmt.Sprintf("images/%s/%s", userID, id)
+	key := fmt.Sprintf("images/%s/%s/%s", imgPurpose, userID, id)
 
 	signDateStamp := time.Now().UTC().Format("20060102")
 	credential := fmt.Sprintf("%s/%s/%s/s3/aws4_request", svc.creds.AccessKeyID, signDateStamp, svc.region)
