@@ -71,7 +71,7 @@ func main() {
 	}
 	defer db.Close()
 
-	conn, err := grpc.NewClient("image_service_grpc:50055", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("image_grpc:50055", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}
