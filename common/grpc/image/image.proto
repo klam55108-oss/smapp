@@ -3,13 +3,12 @@ syntax = "proto3";
 option go_package = "smapp/common/grpc/image";
 
 service Image {
-    rpc VerifyURL(URL) returns (Exists);
+    rpc CheckObjectExists(ObjectExistsRequest) returns (ObjectExistsResponse);
 }
 
-message URL {
-    string url = 1;
+message ObjectExistsRequest {
+    string bucket = 1;
+    string key = 2;
 }
 
-message Exists {
-    bool exists = 1;
-}
+message ObjectExistsResponse {}

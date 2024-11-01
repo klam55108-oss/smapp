@@ -26,6 +26,8 @@ services:
           path: common
 
   image_grpc:
+    volumes:
+      - ~/.aws:/root/.aws
     develop:
       watch:
         - action: rebuild

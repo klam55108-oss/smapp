@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	commonhttp "smapp/common/http"
+	"smapp/post/model"
 	"smapp/post/service"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -14,9 +15,9 @@ import (
 )
 
 type CreatePostRequestBody struct {
-	Body      string   `json:"body"`
-	AuthorID  string   `json:"authorID"`
-	ImageURLs []string `json:"imageURLs"`
+	Body     string                `json:"body"`
+	AuthorID string                `json:"authorID"`
+	Images   []model.ImageLocation `json:"images"`
 }
 
 func (post *CreatePostRequestBody) Validate() error {
@@ -25,14 +26,14 @@ func (post *CreatePostRequestBody) Validate() error {
 		validation.Field(
 			&post.Body,
 			validation.When(
-				len(post.ImageURLs) == 0,
+				len(post.Images) == 0,
 				validation.Required.Error("body or imageURLs is required"),
 			),
 			validation.Length(1, 5000),
 		),
 		validation.Field(&post.AuthorID, validation.Required, is.UUIDv4),
 		validation.Field(
-			&post.ImageURLs,
+			&post.Images,
 			validation.When(
 				post.Body == "",
 				validation.By(func(value interface{}) error {
@@ -43,7 +44,12 @@ func (post *CreatePostRequestBody) Validate() error {
 					return nil
 				}),
 			),
-			validation.Each(is.URL),
+			validation.Each(
+				validation.By(func(value interface{}) error {
+					image := value.(model.ImageLocation)
+					return image.Validate()
+				}),
+			),
 		),
 	)
 }
@@ -68,9 +74,9 @@ func CreatePost(postService *service.Post) http.Handler {
 			return
 		}
 
-		id, err := postService.Create(r.Context(), post.Body, post.AuthorID, post.ImageURLs)
-		if errors.Is(err, service.ErrImageDoesNotExist) {
-			commonhttp.JSONError(w, "One or more provided image URLs are invalid or inaccessible", http.StatusBadRequest)
+		id, err := postService.Create(r.Context(), post.Body, post.AuthorID, post.Images)
+		if errors.Is(err, service.ErrInvalidImage) {
+			commonhttp.JSONError(w, "One or more provided image locations are invalid or inaccessible", http.StatusBadRequest)
 			log.Println(err)
 			return
 		}

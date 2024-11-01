@@ -3,7 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
+	"smapp/post/model"
 	"smapp/post/repository"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	imagePB "smapp/common/grpc/image"
 )
@@ -20,31 +24,32 @@ func NewPost(postRepository *repository.Post, imageClient imagePB.ImageClient) *
 	}
 }
 
-var ErrImageDoesNotExist = fmt.Errorf("image does not exist")
+var ErrInvalidImage = fmt.Errorf("image does not exist or not accessible")
 
-func (svc *Post) Create(ctx context.Context, body string, author_id string, image_urls []string) (string, error) {
+func (svc *Post) Create(
+	ctx context.Context, body string, author_id string, images []model.ImageLocation,
+) (string, error) {
 	fail := func(err error) (string, error) {
 		return "", fmt.Errorf("create post: %w", err)
 	}
 
-	// TODO: Check if the image_urls exist on S3, maybe in parallel
+	for _, image := range images {
+		_, err := svc.imageClient.CheckObjectExists(ctx, &imagePB.ObjectExistsRequest{
+			Bucket: image.Bucket,
+			Key:    image.Key,
+		})
 
-	for _, url := range image_urls {
-		exists, err := svc.imageClient.VerifyURL(ctx, &imagePB.URL{Url: url})
-		if err != nil {
-			return fail(err)
-		}
-		if !exists.Exists {
-			return fail(fmt.Errorf("%w: %s", ErrImageDoesNotExist, url))
+		if status.Code(err) != codes.OK {
+			return fail(fmt.Errorf("%w: %s", ErrInvalidImage, err))
 		}
 	}
 
-	id, err := svc.postRepository.Create(ctx, body, author_id, image_urls)
+	id, err := svc.postRepository.Create(ctx, body, author_id, images)
 	if err != nil {
 		return fail(err)
 	}
 
-	// TODO: Validate images on S3, and implement cleanup policies
+	// TODO: Implement expiration for certain tags
 
 	return id, nil
 }

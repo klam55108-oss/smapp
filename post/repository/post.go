@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"smapp/post/model"
 
 	"github.com/google/uuid"
 )
@@ -20,7 +21,7 @@ func NewPost(db *sql.DB) *Post {
 	return &Post{db: db}
 }
 
-func (p *Post) Create(ctx context.Context, body, author_id string, image_urls []string) (string, error) {
+func (p *Post) Create(ctx context.Context, body, author_id string, images []model.ImageLocation) (string, error) {
 	fail := func(err error) (string, error) {
 		return "", fmt.Errorf("add post to db: %w", err)
 	}
@@ -48,15 +49,15 @@ func (p *Post) Create(ctx context.Context, body, author_id string, image_urls []
 		return fail(changeErrIfCtxDone(ctx, err))
 	}
 
-	for i, url := range image_urls {
+	for i, image := range images {
 		image_id, err := uuid.NewRandom()
 		if err != nil {
 			return fail(err)
 		}
 		_, err = tx.ExecContext(
 			ctx,
-			"INSERT INTO images (id, post_id, position, url) VALUES (?, ?, ?, ?)",
-			image_id[:], id[:], i, url,
+			"INSERT INTO images (id, post_id, position, s3_bucket, s3_key) VALUES (?, ?, ?, ?, ?)",
+			image_id[:], id[:], i, image.Bucket, image.Key,
 		)
 		if err != nil {
 			return fail(changeErrIfCtxDone(ctx, err))

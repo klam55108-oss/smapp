@@ -38,5 +38,6 @@ CREATE TABLE images (
     id BINARY(16) PRIMARY KEY,
     post_id BINARY(16) NOT NULL,
     position INT SIGNED NOT NULL,
-    url VARCHAR(2000) NOT NULL
+    s3_bucket VARCHAR(63) NOT NULL,
+    s3_key VARCHAR(1024) NOT NULL
 );
