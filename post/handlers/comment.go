@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	commonhttp "smapp/common/http"
@@ -12,17 +13,16 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
+	"github.com/gorilla/mux"
 )
 
 type CreateCommentRequestBody struct {
-	PostID string `json:"post_id"`
-	Body   string `json:"body"`
+	Body string `json:"body"`
 }
 
 func (comment *CreateCommentRequestBody) Validate() error {
 	return validation.ValidateStruct(
 		comment,
-		validation.Field(&comment.PostID, validation.Required, is.UUIDv4),
 		validation.Field(&comment.Body, validation.Required, validation.Length(1, 5000)),
 	)
 }
@@ -47,6 +47,16 @@ func CreateComment(commentService *service.Comment) http.Handler {
 			return
 		}
 
+		postID, ok := mux.Vars(r)["post_id"]
+		if !ok {
+			panic("create comment: missing post ID")
+		}
+		err = validation.Validate(postID, is.UUIDv4)
+		if err != nil {
+			commonhttp.JSONError(w, fmt.Sprintf("Invalid post ID: %s", err.Error()), http.StatusBadRequest)
+			return
+		}
+
 		// Headers set by the gateway
 		authorID := r.Header.Get("X-User-Id")
 		if authorID == "" {
@@ -54,7 +64,7 @@ func CreateComment(commentService *service.Comment) http.Handler {
 			return
 		}
 
-		id, err := commentService.Create(r.Context(), comment.PostID, authorID, comment.Body)
+		id, err := commentService.Create(r.Context(), postID, authorID, comment.Body)
 		if errors.Is(err, repository.ErrPostDoesNotExist) {
 			commonhttp.JSONError(w, "Post ID does not exist", http.StatusBadRequest)
 			log.Println(err)

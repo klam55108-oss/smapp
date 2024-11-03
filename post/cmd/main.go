@@ -86,8 +86,8 @@ func main() {
 	commentHandler := handlers.CreateComment(commentService)
 
 	r := mux.NewRouter()
-	r.Handle("/post", postHandler).Methods(http.MethodPost)
-	r.Handle("/comment", commentHandler).Methods(http.MethodPost)
+	r.Handle("/posts", postHandler).Methods(http.MethodPost)
+	r.Handle("/posts/{post_id}/comments", commentHandler).Methods(http.MethodPost)
 	r.Use(commonhttp.WithRequestContextTimeout(defaultTimeout))
 	srv := &http.Server{
 		Addr:        ":8082",
