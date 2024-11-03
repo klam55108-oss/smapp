@@ -81,8 +81,13 @@ func main() {
 	postService := service.NewPost(postRepository, imageClient)
 	postHandler := handlers.CreatePost(postService)
 
+	commentRepository := repository.NewComment(db)
+	commentService := service.NewComment(commentRepository)
+	commentHandler := handlers.CreateComment(commentService)
+
 	r := mux.NewRouter()
 	r.Handle("/post", postHandler).Methods(http.MethodPost)
+	r.Handle("/comment", commentHandler).Methods(http.MethodPost)
 	r.Use(commonhttp.WithRequestContextTimeout(defaultTimeout))
 	srv := &http.Server{
 		Addr:        ":8082",

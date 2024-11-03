@@ -18,7 +18,8 @@ CREATE TABLE comments (
     post_id BINARY(16) NOT NULL,
     author_id BINARY(16) NOT NULL,
     body TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES posts(id)
 );
 
 CREATE TABLE likes_count (
@@ -31,7 +32,9 @@ CREATE TABLE likes_count (
 CREATE TABLE comments_count (
     id BINARY(16) PRIMARY KEY,
     post_id BINARY(16) NOT NULL,
-    count INT SIGNED NOT NULL DEFAULT 0
+    count INT SIGNED NOT NULL DEFAULT 0,
+    UNIQUE KEY post_id_unique (post_id),
+    FOREIGN KEY (post_id) REFERENCES posts(id)
 );
 
 CREATE TABLE images (
