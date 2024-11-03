@@ -16,12 +16,12 @@ func NewComment(commentRepository *repository.Comment) *Comment {
 	}
 }
 
-func (svc *Comment) Create(ctx context.Context, post_id, author_id, body string) (string, error) {
+func (svc *Comment) Create(ctx context.Context, postID, authorID, body string) (string, error) {
 	fail := func(err error) (string, error) {
 		return "", fmt.Errorf("create comment: %w", err)
 	}
 
-	id, err := svc.commentRepository.Create(ctx, post_id, author_id, body)
+	id, err := svc.commentRepository.Create(ctx, postID, authorID, body)
 	if err != nil {
 		return fail(err)
 	}

@@ -29,7 +29,7 @@ func NewUser(db *sql.DB) *User {
 	return &User{db: db}
 }
 
-func (u *User) Create(ctx context.Context, name, email, handle, password_hash string) (string, error) {
+func (u *User) Create(ctx context.Context, name, email, handle, passwordHash string) (string, error) {
 	id, err := uuid.NewRandom()
 	if err != nil {
 		return "", fmt.Errorf("insert user in db: %w", err)
@@ -37,7 +37,7 @@ func (u *User) Create(ctx context.Context, name, email, handle, password_hash st
 	_, err = u.db.ExecContext(
 		ctx,
 		"INSERT INTO users (id, name, email, handle, password_hash) VALUES (?, ?, ?, ?, ?)",
-		id[:], name, email, handle, password_hash,
+		id[:], name, email, handle, passwordHash,
 	)
 	var mysqlError *mysql.MySQLError
 	if errors.As(err, &mysqlError) && mysqlError.Number == 1062 {

@@ -21,7 +21,7 @@ func NewPost(db *sql.DB) *Post {
 	return &Post{db: db}
 }
 
-func (p *Post) Create(ctx context.Context, body, author_id string, images []model.ImageLocation) (string, error) {
+func (p *Post) Create(ctx context.Context, body, authorID string, images []model.ImageLocation) (string, error) {
 	fail := func(err error) (string, error) {
 		return "", fmt.Errorf("add post to db: %w", err)
 	}
@@ -36,28 +36,28 @@ func (p *Post) Create(ctx context.Context, body, author_id string, images []mode
 	if err != nil {
 		return fail(err)
 	}
-	author_uuid, err := uuid.Parse(author_id)
+	authorUUID, err := uuid.Parse(authorID)
 	if err != nil {
 		return fail(err)
 	}
 	_, err = tx.ExecContext(
 		ctx,
 		"INSERT INTO posts (id, body, author_id) VALUES (?, ?, ?)",
-		id[:], body, author_uuid[:],
+		id[:], body, authorUUID[:],
 	)
 	if err != nil {
 		return fail(changeErrIfCtxDone(ctx, err))
 	}
 
 	for i, image := range images {
-		image_id, err := uuid.NewRandom()
+		imageID, err := uuid.NewRandom()
 		if err != nil {
 			return fail(err)
 		}
 		_, err = tx.ExecContext(
 			ctx,
 			"INSERT INTO images (id, post_id, position, s3_bucket, s3_key) VALUES (?, ?, ?, ?, ?)",
-			image_id[:], id[:], i, image.Bucket, image.Key,
+			imageID[:], id[:], i, image.Bucket, image.Key,
 		)
 		if err != nil {
 			return fail(changeErrIfCtxDone(ctx, err))

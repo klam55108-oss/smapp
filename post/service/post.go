@@ -27,7 +27,7 @@ func NewPost(postRepository *repository.Post, imageClient imagePB.ImageClient) *
 var ErrInvalidImage = fmt.Errorf("image does not exist or not accessible")
 
 func (svc *Post) Create(
-	ctx context.Context, body string, author_id string, images []model.ImageLocation,
+	ctx context.Context, body string, authorID string, images []model.ImageLocation,
 ) (string, error) {
 	fail := func(err error) (string, error) {
 		return "", fmt.Errorf("create post: %w", err)
@@ -44,7 +44,7 @@ func (svc *Post) Create(
 		}
 	}
 
-	id, err := svc.postRepository.Create(ctx, body, author_id, images)
+	id, err := svc.postRepository.Create(ctx, body, authorID, images)
 	if err != nil {
 		return fail(err)
 	}
