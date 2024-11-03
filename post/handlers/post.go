@@ -11,13 +11,11 @@ import (
 	"smapp/post/service"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/go-ozzo/ozzo-validation/v4/is"
 )
 
 type CreatePostRequestBody struct {
-	Body     string                `json:"body"`
-	AuthorID string                `json:"authorID"`
-	Images   []model.ImageLocation `json:"images"`
+	Body   string                `json:"body"`
+	Images []model.ImageLocation `json:"images"`
 }
 
 func (post *CreatePostRequestBody) Validate() error {
@@ -31,7 +29,6 @@ func (post *CreatePostRequestBody) Validate() error {
 			),
 			validation.Length(1, 5000),
 		),
-		validation.Field(&post.AuthorID, validation.Required, is.UUIDv4),
 		validation.Field(
 			&post.Images,
 			validation.When(
@@ -74,7 +71,14 @@ func CreatePost(postService *service.Post) http.Handler {
 			return
 		}
 
-		id, err := postService.Create(r.Context(), post.Body, post.AuthorID, post.Images)
+		// Headers set by the gateway
+		authorID := r.Header.Get("X-User-Id")
+		if authorID == "" {
+			commonhttp.JSONError(w, "Missing X-User-Id header", http.StatusUnauthorized)
+			return
+		}
+
+		id, err := postService.Create(r.Context(), post.Body, authorID, post.Images)
 		if errors.Is(err, service.ErrInvalidImage) {
 			commonhttp.JSONError(w, "One or more provided image locations are invalid or inaccessible", http.StatusBadRequest)
 			log.Println(err)
