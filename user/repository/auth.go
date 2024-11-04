@@ -21,10 +21,6 @@ type User struct {
 	db *sql.DB
 }
 
-func (u *User) Close() error {
-	return u.db.Close()
-}
-
 func NewUser(db *sql.DB) *User {
 	return &User{db: db}
 }

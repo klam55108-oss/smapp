@@ -14,10 +14,6 @@ type Comment struct {
 	db *sql.DB
 }
 
-func (c *Comment) Close() error {
-	return c.db.Close()
-}
-
 func NewComment(db *sql.DB) *Comment {
 	return &Comment{db: db}
 }

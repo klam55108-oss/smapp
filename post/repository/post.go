@@ -13,10 +13,6 @@ type Post struct {
 	db *sql.DB
 }
 
-func (p *Post) Close() error {
-	return p.db.Close()
-}
-
 func NewPost(db *sql.DB) *Post {
 	return &Post{db: db}
 }
