@@ -100,7 +100,10 @@ func CreatePost(postService *service.Post) http.Handler {
 			return
 		}
 
-		response := map[string]interface{}{"id": id}
+		response := map[string]interface{}{
+			"status": "success",
+			"id":     id,
+		}
 		commonhttp.JSONResponse(w, response, http.StatusCreated)
 	})
 }

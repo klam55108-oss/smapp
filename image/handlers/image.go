@@ -35,6 +35,10 @@ func GenerateUploadForm(svc *service.GenerateUploadForm, imgPurpose string, imgS
 			return
 		}
 
-		commonhttp.JSONResponse(w, form, http.StatusOK)
+		response := map[string]interface{}{
+			"status": "success",
+			"data":   form,
+		}
+		commonhttp.JSONResponse(w, response, http.StatusOK)
 	})
 }
