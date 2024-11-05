@@ -85,10 +85,16 @@ func main() {
 	commentService := service.NewComment(commentRepository)
 	commentHandler := handlers.CreateComment(commentService)
 
+	likeRepository := repository.NewLike(db)
+	likeService := service.NewLike(likeRepository, postRepository, commentRepository)
+	likeHandler := handlers.CreateLike(likeService)
+
 	r := mux.NewRouter()
 	r.Handle("/posts", postHandler).Methods(http.MethodPost)
 	r.Handle("/posts/{post_id}/comments", commentHandler).Methods(http.MethodPost)
+	r.Handle("/{entity_type:posts|comments}/{entity_id}/likes", likeHandler).Methods(http.MethodPost)
 	r.Use(commonhttp.WithRequestContextTimeout(defaultTimeout))
+
 	srv := &http.Server{
 		Addr:        ":8082",
 		Handler:     r,

@@ -7,10 +7,11 @@ CREATE TABLE posts (
 
 CREATE TABLE likes (
     id BINARY(16) PRIMARY KEY,
-    liked_id BINARY(16) NOT NULL,
-    liked_type ENUM('post', 'comment') NOT NULL,
+    entity_type ENUM('posts', 'comments') NOT NULL,
+    entity_id BINARY(16) NOT NULL,
     author_id BINARY(16) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY author_entity_unique (entity_type, entity_id, author_id)
 );
 
 CREATE TABLE comments (
@@ -24,8 +25,9 @@ CREATE TABLE comments (
 
 CREATE TABLE likes_count (
     id BINARY(16) PRIMARY KEY,
-    liked_id BINARY(16) NOT NULL,
-    liked_type ENUM('post', 'comment') NOT NULL,
+    entity_type ENUM('posts', 'comments') NOT NULL,
+    entity_id BINARY(16) NOT NULL,
+    UNIQUE KEY entity_unique (entity_type, entity_id),
     count INT SIGNED NOT NULL DEFAULT 0
 );
 
