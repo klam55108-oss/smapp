@@ -17,16 +17,7 @@ import (
 
 func CreateLike(likeService *service.Like) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		entityType, ok := vars["entity_type"]
-		if !ok {
-			panic("create like: missing entity type")
-		}
-		if entityType != "posts" && entityType != "comments" {
-			fmt.Println(entityType)
-			panic("create like: invalid entity type")
-		}
-		entityID, ok := vars["entity_id"]
+		entityID, ok := mux.Vars(r)["entity_id"]
 		if !ok {
 			panic("create like: missing entity ID")
 		}
@@ -42,7 +33,7 @@ func CreateLike(likeService *service.Like) http.Handler {
 			return
 		}
 
-		err := likeService.Create(r.Context(), entityType, entityID, authorID)
+		err := likeService.Create(r.Context(), entityID, authorID)
 		if errors.Is(err, repository.ErrPostDoesNotExist) {
 			commonhttp.JSONError(w, "Post ID does not exist", http.StatusBadRequest)
 			log.Println(err)

@@ -13,14 +13,21 @@ import (
 )
 
 type Post struct {
-	postRepository *repository.Post
-	imageClient    imagePB.ImageClient
+	postRepository    *repository.Post
+	imageClient       imagePB.ImageClient
+	commentRepository *repository.Comment
+	likeRepository    *repository.Like
 }
 
-func NewPost(postRepository *repository.Post, imageClient imagePB.ImageClient) *Post {
+func NewPost(
+	postRepository *repository.Post, imageClient imagePB.ImageClient, commentRepository *repository.Comment,
+	likeRepository *repository.Like,
+) *Post {
 	return &Post{
-		postRepository: postRepository,
-		imageClient:    imageClient,
+		postRepository:    postRepository,
+		imageClient:       imageClient,
+		commentRepository: commentRepository,
+		likeRepository:    likeRepository,
 	}
 }
 
@@ -52,4 +59,27 @@ func (svc *Post) Create(
 	// TODO: Implement expiration for certain tags
 
 	return id, nil
+}
+
+func (svc *Post) Get(ctx context.Context, id string) (model.Post, int, int, error) {
+	fail := func(err error) (model.Post, int, int, error) {
+		return model.Post{}, 0, 0, fmt.Errorf("get post: %w", err)
+	}
+
+	post, err := svc.postRepository.Get(ctx, id)
+	if err != nil {
+		return fail(err)
+	}
+
+	commentCount, err := svc.commentRepository.GetCount(ctx, id)
+	if err != nil {
+		return fail(err)
+	}
+
+	likeCount, err := svc.likeRepository.GetCount(ctx, id)
+	if err != nil {
+		return fail(err)
+	}
+
+	return post, commentCount, likeCount, nil
 }

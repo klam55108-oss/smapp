@@ -5,21 +5,27 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"smapp/post/model"
 
 	"github.com/google/uuid"
 )
 
 type Like struct {
-	db *sql.DB
+	db         *sql.DB
+	entityType model.EntityType
 }
 
-func NewLike(db *sql.DB) *Like {
-	return &Like{db: db}
+func NewPostLike(db *sql.DB) *Like {
+	return &Like{db: db, entityType: model.PostType}
+}
+
+func NewCommentLike(db *sql.DB) *Like {
+	return &Like{db: db, entityType: model.CommentType}
 }
 
 var ErrLikeExists = errors.New("like already exists")
 
-func (l *Like) Create(ctx context.Context, entityType, entityID, authorID string) error {
+func (l *Like) Create(ctx context.Context, entityID, authorID string) error {
 	fail := func(err error) error {
 		return fmt.Errorf("add like to db: %w", err)
 	}
@@ -46,7 +52,7 @@ func (l *Like) Create(ctx context.Context, entityType, entityID, authorID string
 	result, err := tx.ExecContext(
 		ctx,
 		"INSERT IGNORE INTO likes (id, entity_type, entity_id, author_id) VALUES (?, ?, ?, ?)",
-		id[:], entityType, entityUUID[:], authorUUID[:],
+		id[:], l.entityType, entityUUID[:], authorUUID[:],
 	)
 	if err != nil {
 		return fail(changeErrIfCtxDone(ctx, err))
@@ -66,7 +72,7 @@ func (l *Like) Create(ctx context.Context, entityType, entityID, authorID string
 	_, err = tx.ExecContext(
 		ctx,
 		"INSERT INTO likes_count (id, entity_type, entity_id, count) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE count = count + 1",
-		countID[:], entityType, entityUUID[:],
+		countID[:], l.entityType, entityUUID[:],
 	)
 	if err != nil {
 		return fail(changeErrIfCtxDone(ctx, err))
@@ -76,4 +82,30 @@ func (l *Like) Create(ctx context.Context, entityType, entityID, authorID string
 		return fail(changeErrIfCtxDone(ctx, err))
 	}
 	return nil
+}
+
+func (l *Like) GetCount(ctx context.Context, entityID string) (int, error) {
+	fail := func(err error) (int, error) {
+		return 0, fmt.Errorf("get like count: %w", err)
+	}
+
+	entityUUID, err := uuid.Parse(entityID)
+	if err != nil {
+		return fail(err)
+	}
+
+	var count int
+	err = l.db.QueryRowContext(
+		ctx,
+		"SELECT count FROM likes_count WHERE entity_type = ? AND entity_id = ?",
+		l.entityType, entityUUID[:],
+	).Scan(&count)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	}
+	if err != nil {
+		return fail(err)
+	}
+
+	return count, nil
 }

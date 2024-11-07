@@ -1,8 +1,25 @@
 package model
 
 import (
+	"time"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
+
+type EntityType string
+
+const (
+	PostType    EntityType = "posts"
+	CommentType EntityType = "comments"
+)
+
+type Post struct {
+	ID        string
+	AuthorID  string
+	Body      string
+	Images    []ImageLocation
+	CreatedAt time.Time
+}
 
 type ImageLocation struct {
 	Bucket string

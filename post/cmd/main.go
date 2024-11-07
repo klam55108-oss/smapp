@@ -58,7 +58,10 @@ func main() {
 
 	db, err := sql.Open(
 		"mysql",
-		fmt.Sprintf("%s:%s@tcp(%s)/%s", mysqlConfig.user, mysqlConfig.password, mysqlConfig.host, mysqlConfig.db),
+		fmt.Sprintf(
+			"%s:%s@tcp(%s)/%s?parseTime=true",
+			mysqlConfig.user, mysqlConfig.password, mysqlConfig.host, mysqlConfig.db,
+		),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -77,22 +80,23 @@ func main() {
 	}
 	defer conn.Close()
 	imageClient := imagePB.NewImageClient(conn)
+
 	postRepository := repository.NewPost(db)
-	postService := service.NewPost(postRepository, imageClient)
-	postHandler := handlers.CreatePost(postService)
-
 	commentRepository := repository.NewComment(db)
-	commentService := service.NewComment(commentRepository)
-	commentHandler := handlers.CreateComment(commentService)
+	postLikeRepository := repository.NewPostLike(db)
+	commentLikeRepository := repository.NewCommentLike(db)
 
-	likeRepository := repository.NewLike(db)
-	likeService := service.NewLike(likeRepository, postRepository, commentRepository)
-	likeHandler := handlers.CreateLike(likeService)
+	postService := service.NewPost(postRepository, imageClient, commentRepository, postLikeRepository)
+	commentService := service.NewComment(commentRepository)
+	postLikeService := service.NewPostLike(postLikeRepository, postRepository)
+	commentLikeService := service.NewCommentLike(commentLikeRepository, commentRepository)
 
 	r := mux.NewRouter()
-	r.Handle("/posts", postHandler).Methods(http.MethodPost)
-	r.Handle("/posts/{post_id}/comments", commentHandler).Methods(http.MethodPost)
-	r.Handle("/{entity_type:posts|comments}/{entity_id}/likes", likeHandler).Methods(http.MethodPost)
+	r.Handle("/posts", handlers.CreatePost(postService)).Methods(http.MethodPost)
+	r.Handle("/posts/{post_id}", handlers.GetPost(postService)).Methods(http.MethodGet)
+	r.Handle("/posts/{post_id}/comments", handlers.CreateComment(commentService)).Methods(http.MethodPost)
+	r.Handle("/posts/{entity_id}/likes", handlers.CreateLike(postLikeService)).Methods(http.MethodPost)
+	r.Handle("/comments/{entity_id}/likes", handlers.CreateLike(commentLikeService)).Methods(http.MethodPost)
 	r.Use(commonhttp.WithRequestContextTimeout(defaultTimeout))
 
 	srv := &http.Server{

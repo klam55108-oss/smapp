@@ -76,7 +76,7 @@ func (c *Comment) Create(ctx context.Context, postID, authorID, body string) (st
 	return id.String(), nil
 }
 
-func (c *Comment) CheckIDExists(ctx context.Context, id string) error {
+func (c *Comment) CheckExists(ctx context.Context, id string) error {
 	fail := func(err error) error {
 		return fmt.Errorf("check if comment exists in db: %w", err)
 	}
@@ -99,4 +99,30 @@ func (c *Comment) CheckIDExists(ctx context.Context, id string) error {
 		return fail(fmt.Errorf("%w: %s", ErrCommentDoesNotExist, id))
 	}
 	return nil
+}
+
+func (c *Comment) GetCount(ctx context.Context, postID string) (int, error) {
+	fail := func(err error) (int, error) {
+		return 0, fmt.Errorf("get comment count: %w", err)
+	}
+
+	postUUID, err := uuid.Parse(postID)
+	if err != nil {
+		return fail(err)
+	}
+
+	var count int
+	err = c.db.QueryRowContext(
+		ctx,
+		"SELECT count FROM comments_count WHERE post_id = ?",
+		postUUID[:],
+	).Scan(&count)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	}
+	if err != nil {
+		return fail(err)
+	}
+
+	return count, nil
 }

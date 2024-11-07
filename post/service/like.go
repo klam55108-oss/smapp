@@ -6,40 +6,39 @@ import (
 	"smapp/post/repository"
 )
 
-type Like struct {
-	likeRepository    *repository.Like
-	postRepository    *repository.Post
-	commentRepository *repository.Comment
+type entityRepository interface {
+	CheckExists(ctx context.Context, entityID string) error
 }
 
-func NewLike(
-	likeRepository *repository.Like, postRepository *repository.Post, commentRepository *repository.Comment,
-) *Like {
+type Like struct {
+	likeRepository   *repository.Like
+	entityRepository entityRepository
+}
+
+func NewPostLike(likeRepository *repository.Like, postRepository *repository.Post) *Like {
 	return &Like{
-		likeRepository:    likeRepository,
-		postRepository:    postRepository,
-		commentRepository: commentRepository,
+		likeRepository:   likeRepository,
+		entityRepository: postRepository,
 	}
 }
 
-func (svc *Like) Create(ctx context.Context, entityType, entityID, authorID string) error {
+func NewCommentLike(likeRepository *repository.Like, commentRepository *repository.Comment) *Like {
+	return &Like{
+		likeRepository:   likeRepository,
+		entityRepository: commentRepository,
+	}
+}
+
+func (svc Like) Create(ctx context.Context, entityID, authorID string) error {
 	fail := func(err error) error {
 		return fmt.Errorf("create like: %w", err)
 	}
 
-	if entityType == "posts" {
-		if err := svc.postRepository.CheckIDExists(ctx, entityID); err != nil {
-			return fail(err)
-		}
-	} else if entityType == "comments" {
-		if err := svc.commentRepository.CheckIDExists(ctx, entityID); err != nil {
-			return fail(err)
-		}
-	} else {
-		return fail(fmt.Errorf("unknown entity type: %s", entityType))
+	if err := svc.entityRepository.CheckExists(ctx, entityID); err != nil {
+		return fail(err)
 	}
 
-	err := svc.likeRepository.Create(ctx, entityType, entityID, authorID)
+	err := svc.likeRepository.Create(ctx, entityID, authorID)
 	if err != nil {
 		return fail(err)
 	}

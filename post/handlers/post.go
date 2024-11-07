@@ -4,13 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	commonhttp "smapp/common/http"
 	"smapp/post/model"
+	"smapp/post/repository"
 	"smapp/post/service"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
+	"github.com/gorilla/mux"
 )
 
 type CreatePostRequestBody struct {
@@ -105,5 +109,51 @@ func CreatePost(postService *service.Post) http.Handler {
 			"id":     id,
 		}
 		commonhttp.JSONResponse(w, response, http.StatusCreated)
+	})
+}
+
+func GetPost(postService *service.Post) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		postID, ok := mux.Vars(r)["post_id"]
+		if !ok {
+			panic("get post: missing post ID")
+		}
+		err := validation.Validate(postID, is.UUIDv4)
+		if err != nil {
+			commonhttp.JSONError(w, fmt.Sprintf("Invalid post ID: %s", err.Error()), http.StatusBadRequest)
+			return
+		}
+
+		post, commentCount, likeCount, err := postService.Get(r.Context(), postID)
+		if errors.Is(err, repository.ErrPostDoesNotExist) {
+			commonhttp.JSONError(w, "Post not found", http.StatusNotFound)
+			log.Println(err)
+			return
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			log.Println(err)
+			commonhttp.JSONErrorWithDefaultMessage(w, http.StatusRequestTimeout)
+			return
+		}
+		if errors.Is(err, context.Canceled) {
+			// client disconnected
+			log.Println(err)
+			return
+		}
+		if err != nil {
+			log.Println(err)
+			commonhttp.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
+			return
+		}
+
+		response := map[string]interface{}{
+			"status": "success",
+			"data": map[string]interface{}{
+				"post":         post,
+				"commentCount": commentCount,
+				"likeCount":    likeCount,
+			},
+		}
+		commonhttp.JSONResponse(w, response, http.StatusOK)
 	})
 }
