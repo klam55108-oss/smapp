@@ -38,7 +38,7 @@ func (post *CreatePostRequestBody) Validate() error {
 			validation.When(
 				post.Body == "",
 				validation.By(func(value interface{}) error {
-					urls := value.([]string)
+					urls := value.([]model.ImageLocation)
 					if len(urls) == 0 {
 						return errors.New("body or imageURLs is required")
 					}
