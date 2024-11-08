@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	commonenv "smapp/common/env"
+	commonhttp "smapp/common/http"
 	"smapp/image/handlers"
 	"smapp/image/service"
 
@@ -59,11 +60,13 @@ func main() {
 	r.Handle(
 		"/upload-form/profile",
 		handlers.GenerateUploadForm(generateUploadFormService, "profile", profileImgLimit),
-	).Methods(http.MethodPost)
+	).Methods(http.MethodGet)
 	r.Handle(
 		"/upload-form/post",
 		handlers.GenerateUploadForm(generateUploadFormService, "post", postImgLimit),
-	).Methods(http.MethodPost)
+	).Methods(http.MethodGet)
+	r.Use(commonhttp.WithRequestContextTimeout(defaultTimeout))
+
 	srv := &http.Server{
 		Addr:        ":8085",
 		Handler:     r,
