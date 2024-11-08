@@ -103,7 +103,7 @@ func (c *Comment) CheckExists(ctx context.Context, id string) error {
 
 func (c *Comment) GetCount(ctx context.Context, postID string) (int, error) {
 	fail := func(err error) (int, error) {
-		return 0, fmt.Errorf("get comment count: %w", err)
+		return 0, fmt.Errorf("get comment count from db: %w", err)
 	}
 
 	postUUID, err := uuid.Parse(postID)

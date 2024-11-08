@@ -86,7 +86,7 @@ func (l *Like) Create(ctx context.Context, entityID, authorID string) error {
 
 func (l *Like) GetCount(ctx context.Context, entityID string) (int, error) {
 	fail := func(err error) (int, error) {
-		return 0, fmt.Errorf("get like count: %w", err)
+		return 0, fmt.Errorf("get like count from db: %w", err)
 	}
 
 	entityUUID, err := uuid.Parse(entityID)
