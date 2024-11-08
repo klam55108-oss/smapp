@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	commonhttp "smapp/common/http"
+	"smapp/common/jsonresp"
 	"smapp/post/repository"
 	"smapp/post/service"
 
@@ -32,18 +32,18 @@ func CreateComment(commentService *service.Comment) http.Handler {
 		var comment CreateCommentRequestBody
 		err := json.NewDecoder(r.Body).Decode(&comment)
 		if err != nil {
-			commonhttp.JSONError(w, "Invalid JSON body", http.StatusBadRequest)
+			jsonresp.Error(w, "Invalid JSON body", http.StatusBadRequest)
 			return
 		}
 		err = comment.Validate()
 		if err != nil {
 			if e, ok := err.(validation.InternalError); ok {
 				log.Println(e.InternalError())
-				commonhttp.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
+				jsonresp.ErrorWithDefaultMessage(w, http.StatusInternalServerError)
 				return
 			}
 			errors := (err.(validation.Errors).Filter()).(validation.Errors)
-			commonhttp.JSONValidationError(w, errors, http.StatusBadRequest)
+			jsonresp.ValidationError(w, errors, http.StatusBadRequest)
 			return
 		}
 
@@ -53,26 +53,26 @@ func CreateComment(commentService *service.Comment) http.Handler {
 		}
 		err = validation.Validate(postID, is.UUIDv4)
 		if err != nil {
-			commonhttp.JSONError(w, fmt.Sprintf("Invalid post ID: %s", err.Error()), http.StatusBadRequest)
+			jsonresp.Error(w, fmt.Sprintf("Invalid post ID: %s", err.Error()), http.StatusBadRequest)
 			return
 		}
 
 		// Headers set by the gateway
 		authorID := r.Header.Get("X-User-Id")
 		if authorID == "" {
-			commonhttp.JSONError(w, "Missing X-User-Id header", http.StatusUnauthorized)
+			jsonresp.Error(w, "Missing X-User-Id header", http.StatusUnauthorized)
 			return
 		}
 
 		id, err := commentService.Create(r.Context(), postID, authorID, comment.Body)
 		if errors.Is(err, repository.ErrPostDoesNotExist) {
-			commonhttp.JSONError(w, "Post ID does not exist", http.StatusBadRequest)
+			jsonresp.Error(w, "Post ID does not exist", http.StatusBadRequest)
 			log.Println(err)
 			return
 		}
 		if errors.Is(err, context.DeadlineExceeded) {
 			log.Println(err)
-			commonhttp.JSONErrorWithDefaultMessage(w, http.StatusRequestTimeout)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusRequestTimeout)
 			return
 		}
 		if errors.Is(err, context.Canceled) {
@@ -82,7 +82,7 @@ func CreateComment(commentService *service.Comment) http.Handler {
 		}
 		if err != nil {
 			log.Println(err)
-			commonhttp.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusInternalServerError)
 			return
 		}
 
@@ -90,6 +90,6 @@ func CreateComment(commentService *service.Comment) http.Handler {
 			"status": "success",
 			"id":     id,
 		}
-		commonhttp.JSONResponse(w, response, http.StatusCreated)
+		jsonresp.Response(w, response, http.StatusCreated)
 	})
 }

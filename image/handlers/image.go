@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	commonhttp "smapp/common/http"
+	"smapp/common/jsonresp"
 	"smapp/image/service"
 )
 
@@ -15,14 +15,14 @@ func GenerateUploadForm(svc *service.GenerateUploadForm, imgPurpose string, imgS
 		// Headers set by the gateway
 		userID := r.Header.Get("X-User-Id")
 		if userID == "" {
-			commonhttp.JSONError(w, "Missing X-User-Id header", http.StatusUnauthorized)
+			jsonresp.Error(w, "Missing X-User-Id header", http.StatusUnauthorized)
 			return
 		}
 
 		form, err := svc.GetForm(r.Context(), imgPurpose, userID, imgSizeLimit)
 		if errors.Is(err, context.DeadlineExceeded) {
 			log.Println(err)
-			commonhttp.JSONErrorWithDefaultMessage(w, http.StatusGatewayTimeout)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusGatewayTimeout)
 			return
 		}
 		if errors.Is(err, context.Canceled) {
@@ -31,7 +31,7 @@ func GenerateUploadForm(svc *service.GenerateUploadForm, imgPurpose string, imgS
 			return
 		}
 		if err != nil {
-			commonhttp.JSONError(w, err.Error(), http.StatusInternalServerError)
+			jsonresp.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -39,6 +39,6 @@ func GenerateUploadForm(svc *service.GenerateUploadForm, imgPurpose string, imgS
 			"status": "success",
 			"data":   form,
 		}
-		commonhttp.JSONResponse(w, response, http.StatusOK)
+		jsonresp.Response(w, response, http.StatusOK)
 	})
 }

@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
-	commonhttp "smapp/common/http"
+	"smapp/common/jsonresp"
 	"smapp/user/repository"
 	"smapp/user/service"
 	"strings"
@@ -47,33 +47,33 @@ func Signup(userService *service.User) http.Handler {
 		var user SignupRequestBody
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
-			commonhttp.JSONError(w, "Invalid JSON body", http.StatusBadRequest)
+			jsonresp.Error(w, "Invalid JSON body", http.StatusBadRequest)
 			return
 		}
 		err = user.Validate()
 		if err != nil {
 			if e, ok := err.(validation.InternalError); ok {
 				log.Println(e.InternalError())
-				commonhttp.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
+				jsonresp.ErrorWithDefaultMessage(w, http.StatusInternalServerError)
 				return
 			}
 			errors := (err.(validation.Errors).Filter()).(validation.Errors)
-			commonhttp.JSONValidationError(w, errors, http.StatusBadRequest)
+			jsonresp.ValidationError(w, errors, http.StatusBadRequest)
 			return
 		}
 
 		token, err := userService.Signup(r.Context(), user.Name, user.Email, user.Handle, user.Password)
 		if errors.Is(err, repository.ErrEmailExists) {
-			commonhttp.JSONError(w, "Email already exists", http.StatusConflict)
+			jsonresp.Error(w, "Email already exists", http.StatusConflict)
 			return
 		}
 		if errors.Is(err, repository.ErrHandleExists) {
-			commonhttp.JSONError(w, "Handle already exists", http.StatusConflict)
+			jsonresp.Error(w, "Handle already exists", http.StatusConflict)
 			return
 		}
 		if errors.Is(err, context.DeadlineExceeded) {
 			log.Println(err)
-			commonhttp.JSONErrorWithDefaultMessage(w, http.StatusGatewayTimeout)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusGatewayTimeout)
 			return
 		}
 		if errors.Is(err, context.Canceled) {
@@ -83,7 +83,7 @@ func Signup(userService *service.User) http.Handler {
 		}
 		if err != nil {
 			log.Println(err)
-			commonhttp.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusInternalServerError)
 			return
 		}
 
@@ -91,7 +91,7 @@ func Signup(userService *service.User) http.Handler {
 			"status": "success",
 			"data":   map[string]string{"token": token},
 		}
-		commonhttp.JSONResponse(w, response, http.StatusCreated)
+		jsonresp.Response(w, response, http.StatusCreated)
 	})
 }
 
@@ -123,7 +123,7 @@ func Login(userService *service.User) http.Handler {
 		var user LoginRequestBody
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
-			commonhttp.JSONError(w, "Invalid JSON body", http.StatusBadRequest)
+			jsonresp.Error(w, "Invalid JSON body", http.StatusBadRequest)
 			return
 		}
 
@@ -132,7 +132,7 @@ func Login(userService *service.User) http.Handler {
 		if err != nil {
 			if e, ok := err.(validation.InternalError); ok {
 				log.Println(e.InternalError())
-				commonhttp.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
+				jsonresp.ErrorWithDefaultMessage(w, http.StatusInternalServerError)
 				return
 			}
 			errors := err.(validation.Errors)
@@ -144,21 +144,21 @@ func Login(userService *service.User) http.Handler {
 				}
 			}
 			if len(errors) > 0 {
-				commonhttp.JSONValidationError(w, errors, http.StatusBadRequest)
+				jsonresp.ValidationError(w, errors, http.StatusBadRequest)
 				return
 			}
-			commonhttp.JSONError(w, wrongCredentialsMessage, http.StatusUnauthorized)
+			jsonresp.Error(w, wrongCredentialsMessage, http.StatusUnauthorized)
 			return
 		}
 
 		token, err := userService.Login(r.Context(), user.Identifier, []byte(user.Password))
 		if errors.Is(err, repository.ErrUserDoesNotExist) || errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			commonhttp.JSONError(w, wrongCredentialsMessage, http.StatusUnauthorized)
+			jsonresp.Error(w, wrongCredentialsMessage, http.StatusUnauthorized)
 			return
 		}
 		if errors.Is(err, context.DeadlineExceeded) {
 			log.Println(err)
-			commonhttp.JSONErrorWithDefaultMessage(w, http.StatusGatewayTimeout)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusGatewayTimeout)
 			return
 		}
 		if errors.Is(err, context.Canceled) {
@@ -168,7 +168,7 @@ func Login(userService *service.User) http.Handler {
 		}
 		if err != nil {
 			log.Println(err)
-			commonhttp.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusInternalServerError)
 			return
 		}
 
@@ -176,6 +176,6 @@ func Login(userService *service.User) http.Handler {
 			"status": "success",
 			"data":   map[string]string{"token": token},
 		}
-		commonhttp.JSONResponse(w, response, http.StatusOK)
+		jsonresp.Response(w, response, http.StatusOK)
 	})
 }

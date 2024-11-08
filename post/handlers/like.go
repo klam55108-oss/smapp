@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	commonhttp "smapp/common/http"
+	"smapp/common/jsonresp"
 	"smapp/post/repository"
 	"smapp/post/service"
 
@@ -22,36 +22,36 @@ func CreateLike(likeService *service.Like) http.Handler {
 			panic("create like: missing entity ID")
 		}
 		if err := validation.Validate(entityID, is.UUIDv4); err != nil {
-			commonhttp.JSONError(w, fmt.Sprintf("Invalid entity ID: %s", err.Error()), http.StatusBadRequest)
+			jsonresp.Error(w, fmt.Sprintf("Invalid entity ID: %s", err.Error()), http.StatusBadRequest)
 			return
 		}
 
 		// Headers set by the gateway
 		authorID := r.Header.Get("X-User-Id")
 		if authorID == "" {
-			commonhttp.JSONError(w, "Missing X-User-Id header", http.StatusUnauthorized)
+			jsonresp.Error(w, "Missing X-User-Id header", http.StatusUnauthorized)
 			return
 		}
 
 		err := likeService.Create(r.Context(), entityID, authorID)
 		if errors.Is(err, repository.ErrPostDoesNotExist) {
-			commonhttp.JSONError(w, "Post ID does not exist", http.StatusBadRequest)
+			jsonresp.Error(w, "Post ID does not exist", http.StatusBadRequest)
 			log.Println(err)
 			return
 		}
 		if errors.Is(err, repository.ErrCommentDoesNotExist) {
-			commonhttp.JSONError(w, "Comment ID does not exist", http.StatusBadRequest)
+			jsonresp.Error(w, "Comment ID does not exist", http.StatusBadRequest)
 			log.Println(err)
 			return
 		}
 		if errors.Is(err, repository.ErrLikeExists) {
 			response := map[string]interface{}{"status": "unchanged"}
-			commonhttp.JSONResponse(w, response, http.StatusOK)
+			jsonresp.Response(w, response, http.StatusOK)
 			return
 		}
 		if errors.Is(err, context.DeadlineExceeded) {
 			log.Println(err)
-			commonhttp.JSONErrorWithDefaultMessage(w, http.StatusRequestTimeout)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusRequestTimeout)
 			return
 		}
 		if errors.Is(err, context.Canceled) {
@@ -61,11 +61,11 @@ func CreateLike(likeService *service.Like) http.Handler {
 		}
 		if err != nil {
 			log.Println(err)
-			commonhttp.JSONErrorWithDefaultMessage(w, http.StatusInternalServerError)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusInternalServerError)
 			return
 		}
 
 		response := map[string]interface{}{"status": "success"}
-		commonhttp.JSONResponse(w, response, http.StatusCreated)
+		jsonresp.Response(w, response, http.StatusCreated)
 	})
 }
