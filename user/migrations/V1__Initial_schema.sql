@@ -9,3 +9,11 @@ CREATE TABLE users (
     UNIQUE KEY email_unique (email),
     UNIQUE KEY handle_unique (handle)
 );
+
+CREATE TABLE follows (
+    follower_id BINARY(16) NOT NULL,
+    followed_id BINARY(16) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (follower_id, followed_id),
+    FOREIGN KEY (followed_id) REFERENCES users(id)
+);

@@ -42,7 +42,7 @@ func (user *SignupRequestBody) Validate() error {
 	)
 }
 
-func Signup(auth *service.Auth) http.Handler {
+func Signup(userService *service.User) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var user SignupRequestBody
 		err := json.NewDecoder(r.Body).Decode(&user)
@@ -62,7 +62,7 @@ func Signup(auth *service.Auth) http.Handler {
 			return
 		}
 
-		token, err := auth.Signup(r.Context(), user.Name, user.Email, user.Handle, user.Password)
+		token, err := userService.Signup(r.Context(), user.Name, user.Email, user.Handle, user.Password)
 		if errors.Is(err, repository.ErrEmailExists) {
 			commonhttp.JSONError(w, "Email already exists", http.StatusConflict)
 			return
@@ -118,7 +118,7 @@ func (user *LoginRequestBody) Validate() error {
 	)
 }
 
-func Login(auth *service.Auth) http.Handler {
+func Login(userService *service.User) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var user LoginRequestBody
 		err := json.NewDecoder(r.Body).Decode(&user)
@@ -151,7 +151,7 @@ func Login(auth *service.Auth) http.Handler {
 			return
 		}
 
-		token, err := auth.Login(r.Context(), user.Identifier, []byte(user.Password))
+		token, err := userService.Login(r.Context(), user.Identifier, []byte(user.Password))
 		if errors.Is(err, repository.ErrUserDoesNotExist) || errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			commonhttp.JSONError(w, wrongCredentialsMessage, http.StatusUnauthorized)
 			return

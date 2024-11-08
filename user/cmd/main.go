@@ -92,13 +92,18 @@ func main() {
 	defer db.Close()
 
 	userRepository := repository.NewUser(db)
+	followRepository := repository.NewFollow(db)
+
 	jwtService := service.NewJWT(jwtConfig.secret, jwtConfig.ttl)
-	authService := service.NewAuth(userRepository, jwtService)
+	userService := service.NewUser(userRepository, jwtService)
+	followService := service.NewFollow(followRepository)
 
 	r := mux.NewRouter()
-	r.Handle("/signup", handlers.Signup(authService)).Methods(http.MethodPost)
-	r.Handle("/login", handlers.Login(authService)).Methods(http.MethodPost)
+	r.Handle("/signup", handlers.Signup(userService)).Methods(http.MethodPost)
+	r.Handle("/login", handlers.Login(userService)).Methods(http.MethodPost)
+	r.Handle("/users/{user_id}/follow", handlers.Follow(followService)).Methods(http.MethodPost)
 	r.Use(commonhttp.WithRequestContextTimeout(defaultTimeout))
+
 	srv := &http.Server{
 		Addr:        ":8081",
 		Handler:     r,
