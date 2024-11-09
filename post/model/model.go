@@ -14,16 +14,16 @@ const (
 )
 
 type Post struct {
-	ID        string
-	AuthorID  string
-	Body      string
-	Images    []ImageLocation
-	CreatedAt time.Time
+	ID        string          `json:"id"`
+	AuthorID  string          `json:"author_id"`
+	Body      string          `json:"body"`
+	Images    []ImageLocation `json:"images"`
+	CreatedAt time.Time       `json:"created_at"`
 }
 
 type ImageLocation struct {
-	Bucket string
-	Key    string
+	Bucket string `json:"bucket"`
+	Key    string `json:"key"`
 }
 
 func (image *ImageLocation) Validate() error {
