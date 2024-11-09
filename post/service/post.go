@@ -61,9 +61,10 @@ func (svc *Post) Create(
 	return id, nil
 }
 
-func (svc *Post) Get(ctx context.Context, id string) (model.Post, int, int, error) {
-	fail := func(err error) (model.Post, int, int, error) {
-		return model.Post{}, 0, 0, fmt.Errorf("get post: %w", err)
+// TODO: implement WithLikeCount/WithCommentCount options
+func (svc *Post) GetWithCounts(ctx context.Context, id string) (model.Post, error) {
+	fail := func(err error) (model.Post, error) {
+		return model.Post{}, fmt.Errorf("get post: %w", err)
 	}
 
 	post, err := svc.postRepository.Get(ctx, id)
@@ -75,11 +76,13 @@ func (svc *Post) Get(ctx context.Context, id string) (model.Post, int, int, erro
 	if err != nil {
 		return fail(err)
 	}
+	post.CommentCount = &commentCount
 
 	likeCount, err := svc.likeRepository.GetCount(ctx, id)
 	if err != nil {
 		return fail(err)
 	}
+	post.LikeCount = &likeCount
 
-	return post, commentCount, likeCount, nil
+	return post, nil
 }

@@ -84,8 +84,8 @@ func (l *Like) Create(ctx context.Context, entityID, authorID string) error {
 	return nil
 }
 
-func (l *Like) GetCount(ctx context.Context, entityID string) (int, error) {
-	fail := func(err error) (int, error) {
+func (l *Like) GetCount(ctx context.Context, entityID string) (uint32, error) {
+	fail := func(err error) (uint32, error) {
 		return 0, fmt.Errorf("get like count from db: %w", err)
 	}
 
@@ -94,7 +94,7 @@ func (l *Like) GetCount(ctx context.Context, entityID string) (int, error) {
 		return fail(err)
 	}
 
-	var count int
+	var count uint32
 	err = l.db.QueryRowContext(
 		ctx,
 		"SELECT count FROM likes_count WHERE entity_type = ? AND entity_id = ?",

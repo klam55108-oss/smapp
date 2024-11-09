@@ -169,8 +169,8 @@ func (c *Comment) GetPaginatedWithLikeCount(ctx context.Context, postID string, 
 	return comments, nextCursor, nil
 }
 
-func (c *Comment) GetCount(ctx context.Context, postID string) (int, error) {
-	fail := func(err error) (int, error) {
+func (c *Comment) GetCount(ctx context.Context, postID string) (uint32, error) {
+	fail := func(err error) (uint32, error) {
 		return 0, fmt.Errorf("get comment count from db: %w", err)
 	}
 
@@ -179,7 +179,7 @@ func (c *Comment) GetCount(ctx context.Context, postID string) (int, error) {
 		return fail(err)
 	}
 
-	var count int
+	var count uint32
 	err = c.db.QueryRowContext(
 		ctx,
 		"SELECT count FROM comments_count WHERE post_id = ?",

@@ -124,7 +124,7 @@ func GetPost(postService *service.Post) http.Handler {
 			return
 		}
 
-		post, commentCount, likeCount, err := postService.Get(r.Context(), postID)
+		post, err := postService.GetWithCounts(r.Context(), postID)
 		if errors.Is(err, repository.ErrPostDoesNotExist) {
 			jsonresp.Error(w, "Post not found", http.StatusNotFound)
 			log.Println(err)
@@ -148,11 +148,7 @@ func GetPost(postService *service.Post) http.Handler {
 
 		response := map[string]interface{}{
 			"status": "success",
-			"data": map[string]interface{}{
-				"post":         post,
-				"commentCount": commentCount,
-				"likeCount":    likeCount,
-			},
+			"data":   map[string]interface{}{"post": post},
 		}
 		jsonresp.Response(w, response, http.StatusOK)
 	})

@@ -14,11 +14,13 @@ const (
 )
 
 type Post struct {
-	ID        string          `json:"id"`
-	AuthorID  string          `json:"author_id"`
-	Body      string          `json:"body"`
-	Images    []ImageLocation `json:"images"`
-	CreatedAt time.Time       `json:"created_at"`
+	ID           string          `json:"id"`
+	AuthorID     string          `json:"author_id"`
+	Body         string          `json:"body"`
+	Images       []ImageLocation `json:"images"`
+	CreatedAt    time.Time       `json:"created_at"`
+	CommentCount *uint32         `json:"comment_count,omitempty"`
+	LikeCount    *uint32         `json:"like_count,omitempty"`
 }
 
 type Comment struct {
