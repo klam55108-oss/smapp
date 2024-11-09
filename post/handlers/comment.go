@@ -8,8 +8,11 @@ import (
 	"log"
 	"net/http"
 	"smapp/common/jsonresp"
+	"smapp/post/model"
 	"smapp/post/repository"
 	"smapp/post/service"
+	"strconv"
+	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
@@ -51,7 +54,7 @@ func CreateComment(commentService *service.Comment) http.Handler {
 		if !ok {
 			panic("create comment: missing post ID")
 		}
-		err = validation.Validate(postID, is.UUIDv4)
+		err = validation.Validate(postID, validation.Required, is.UUIDv4)
 		if err != nil {
 			jsonresp.Error(w, fmt.Sprintf("Invalid post ID: %s", err.Error()), http.StatusBadRequest)
 			return
@@ -91,5 +94,70 @@ func CreateComment(commentService *service.Comment) http.Handler {
 			"id":     id,
 		}
 		jsonresp.Response(w, response, http.StatusCreated)
+	})
+}
+
+func GetComments(commentService *service.Comment) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		postID, ok := mux.Vars(r)["post_id"]
+		if !ok {
+			panic("get comments: missing post ID")
+		}
+		err := validation.Validate(postID, is.UUIDv4)
+		if err != nil {
+			jsonresp.Error(w, fmt.Sprintf("Invalid post ID: %s", err.Error()), http.StatusBadRequest)
+			return
+		}
+
+		lastLoadedTimestamp, err := time.Parse(time.RFC3339, r.URL.Query().Get("last_loaded_timestamp"))
+		if err != nil {
+			jsonresp.Error(w, fmt.Sprintf("last_loaded_timestamp: should be in format %s", time.RFC3339), http.StatusBadRequest)
+			return
+		}
+		lastLoadedID := r.URL.Query().Get("last_loaded_id")
+		if err := validation.Validate(lastLoadedID, validation.Required, is.UUIDv4); err != nil {
+			jsonresp.Error(w, fmt.Sprintf("invalid last_loaded_id: %s", err.Error()), http.StatusBadRequest)
+			return
+		}
+		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+		if err != nil {
+			jsonresp.Error(w, "limit: should be an integer", http.StatusBadRequest)
+			return
+		}
+
+		cursor := model.Cursor{
+			LastLoadedTimestamp: lastLoadedTimestamp,
+			LastLoadedID:        lastLoadedID,
+		}
+		comments, nextCursor, err := commentService.GetPaginatedWithLikeCount(r.Context(), postID, cursor, limit)
+		if errors.Is(err, repository.ErrPostDoesNotExist) {
+			jsonresp.Error(w, "Post not found", http.StatusNotFound)
+			log.Println(err)
+			return
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			log.Println(err)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusRequestTimeout)
+			return
+		}
+		if errors.Is(err, context.Canceled) {
+			// client disconnected
+			log.Println(err)
+			return
+		}
+		if err != nil {
+			log.Println(err)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusInternalServerError)
+			return
+		}
+
+		response := map[string]interface{}{
+			"status": "success",
+			"data": map[string]interface{}{
+				"comments":    comments,
+				"next_cursor": nextCursor,
+			},
+		}
+		jsonresp.Response(w, response, http.StatusOK)
 	})
 }

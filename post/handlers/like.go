@@ -21,7 +21,7 @@ func CreateLike(likeService *service.Like) http.Handler {
 		if !ok {
 			panic("create like: missing entity ID")
 		}
-		if err := validation.Validate(entityID, is.UUIDv4); err != nil {
+		if err := validation.Validate(entityID, validation.Required, is.UUIDv4); err != nil {
 			jsonresp.Error(w, fmt.Sprintf("Invalid entity ID: %s", err.Error()), http.StatusBadRequest)
 			return
 		}

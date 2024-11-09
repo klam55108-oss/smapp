@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"smapp/post/model"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
@@ -99,6 +100,73 @@ func (c *Comment) CheckExists(ctx context.Context, id string) error {
 		return fail(fmt.Errorf("%w: %s", ErrCommentDoesNotExist, id))
 	}
 	return nil
+}
+
+func (c *Comment) GetPaginatedWithLikeCount(ctx context.Context, postID string, cursor model.Cursor, limit int) ([]model.Comment, *model.Cursor, error) {
+	fail := func(err error) ([]model.Comment, *model.Cursor, error) {
+		return nil, nil, fmt.Errorf("get comments from db: %w", err)
+	}
+
+	postUUID, err := uuid.Parse(postID)
+	if err != nil {
+		return fail(err)
+	}
+	lastLoadedUUID, err := uuid.Parse(cursor.LastLoadedID)
+	if err != nil {
+		return fail(err)
+	}
+	query := `
+		SELECT c.id, c.author_id, c.body, c.created_at, IFNULL(lc.count, 0) 
+		FROM comments c 
+		LEFT JOIN likes_count lc ON lc.entity_type = 'comments' AND lc.entity_id = c.id 
+		WHERE c.post_id = ? AND (c.created_at < ? OR (c.created_at = ? AND c.id > ?)) 
+		ORDER BY c.created_at DESC, c.id 
+		LIMIT ? 
+	`
+	rows, err := c.db.QueryContext(
+		ctx,
+		query,
+		postUUID[:], cursor.LastLoadedTimestamp, cursor.LastLoadedTimestamp,
+		lastLoadedUUID[:], limit+1,
+	)
+	if err != nil {
+		return fail(err)
+	}
+	defer rows.Close()
+	comments := make([]model.Comment, 0)
+	for i := 0; i < limit && rows.Next(); i++ {
+		var comment model.Comment
+		var commentIDBytes, authorIDBytes []byte
+		var likeCount uint32
+		if err = rows.Scan(&commentIDBytes, &authorIDBytes, &comment.Body, &comment.CreatedAt, &likeCount); err != nil {
+			return fail(err)
+		}
+		commentUUID, err := uuid.FromBytes(commentIDBytes)
+		if err != nil {
+			return fail(err)
+		}
+		comment.ID = commentUUID.String()
+		authorUUID, err := uuid.FromBytes(authorIDBytes)
+		if err != nil {
+			return fail(err)
+		}
+		comment.AuthorID = authorUUID.String()
+		comment.PostID = postID
+		comment.LikeCount = &likeCount
+		comments = append(comments, comment)
+	}
+	if err = rows.Err(); err != nil {
+		return fail(err)
+	}
+	var nextCursor *model.Cursor
+	// Given that we have loaded limit+1 elements and iterated over at most limit elements, rows.Next() == false means its the last page.
+	if rows.Next() {
+		nextCursor = &model.Cursor{
+			LastLoadedTimestamp: comments[len(comments)-1].CreatedAt,
+			LastLoadedID:        comments[len(comments)-1].ID,
+		}
+	}
+	return comments, nextCursor, nil
 }
 
 func (c *Comment) GetCount(ctx context.Context, postID string) (int, error) {

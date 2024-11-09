@@ -87,7 +87,7 @@ func main() {
 	commentLikeRepository := repository.NewCommentLike(db)
 
 	postService := service.NewPost(postRepository, imageClient, commentRepository, postLikeRepository)
-	commentService := service.NewComment(commentRepository)
+	commentService := service.NewComment(commentRepository, postRepository)
 	postLikeService := service.NewPostLike(postLikeRepository, postRepository)
 	commentLikeService := service.NewCommentLike(commentLikeRepository, commentRepository)
 
@@ -95,6 +95,7 @@ func main() {
 	r.Handle("/posts", handlers.CreatePost(postService)).Methods(http.MethodPost)
 	r.Handle("/posts/{post_id}", handlers.GetPost(postService)).Methods(http.MethodGet)
 	r.Handle("/posts/{post_id}/comments", handlers.CreateComment(commentService)).Methods(http.MethodPost)
+	r.Handle("/posts/{post_id}/comments", handlers.GetComments(commentService)).Methods(http.MethodGet)
 	r.Handle("/posts/{entity_id}/likes", handlers.CreateLike(postLikeService)).Methods(http.MethodPost)
 	r.Handle("/comments/{entity_id}/likes", handlers.CreateLike(commentLikeService)).Methods(http.MethodPost)
 	r.Use(commonhttp.WithRequestContextTimeout(defaultTimeout))

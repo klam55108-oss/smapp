@@ -21,6 +21,20 @@ type Post struct {
 	CreatedAt time.Time       `json:"created_at"`
 }
 
+type Comment struct {
+	ID        string    `json:"id"`
+	PostID    string    `json:"post_id"`
+	AuthorID  string    `json:"author_id"`
+	Body      string    `json:"body"`
+	CreatedAt time.Time `json:"created_at"`
+	LikeCount *uint32   `json:"like_count,omitempty"`
+}
+
+type Cursor struct {
+	LastLoadedTimestamp time.Time `json:"last_loaded_timestamp"`
+	LastLoadedID        string    `json:"last_loaded_id"`
+}
+
 type ImageLocation struct {
 	Bucket string `json:"bucket"`
 	Key    string `json:"key"`

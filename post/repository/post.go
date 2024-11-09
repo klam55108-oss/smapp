@@ -106,12 +106,12 @@ func (p *Post) Get(ctx context.Context, id string) (model.Post, error) {
 	var post model.Post
 	post.ID = id
 
-	var authorID []byte
+	var authorIDBytes []byte
 	err = p.db.QueryRowContext(
 		ctx,
 		"SELECT author_id, body, created_at FROM posts WHERE id = ?",
 		postUUID[:],
-	).Scan(&authorID, &post.Body, &post.CreatedAt)
+	).Scan(&authorIDBytes, &post.Body, &post.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return fail(fmt.Errorf("%w: %s", ErrPostDoesNotExist, id))
 	}
@@ -119,7 +119,7 @@ func (p *Post) Get(ctx context.Context, id string) (model.Post, error) {
 		return fail(err)
 	}
 
-	authorUUID, err := uuid.FromBytes(authorID)
+	authorUUID, err := uuid.FromBytes(authorIDBytes)
 	if err != nil {
 		return fail(err)
 	}

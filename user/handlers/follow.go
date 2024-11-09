@@ -21,7 +21,7 @@ func Follow(followService *service.Follow) http.Handler {
 		if !ok {
 			panic("follow: missing user ID")
 		}
-		if err := validation.Validate(followedID, is.UUIDv4); err != nil {
+		if err := validation.Validate(followedID, validation.Required, is.UUIDv4); err != nil {
 			jsonresp.Error(w, fmt.Sprintf("Invalid user ID: %s", err.Error()), http.StatusBadRequest)
 			return
 		}
