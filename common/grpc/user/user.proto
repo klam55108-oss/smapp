@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option go_package = "smapp/common/grpc/user";
+
+service User {
+    rpc GetFollowed(GetFollowedRequest) returns (GetFollowedResponse);
+}
+
+message GetFollowedRequest {
+    string user_id = 1;
+}
+
+message GetFollowedResponse {
+    repeated string user_ids = 1;
+}

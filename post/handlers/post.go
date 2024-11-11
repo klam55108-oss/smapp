@@ -10,6 +10,8 @@ import (
 	"smapp/common/jsonresp"
 	"smapp/post/model"
 	"smapp/post/service"
+	"strconv"
+	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
@@ -151,4 +153,65 @@ func GetPost(postService *service.Post) http.Handler {
 		}
 		jsonresp.Response(w, response, http.StatusOK)
 	})
+}
+
+func GetFeed(postService *service.Post) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Headers set by the gateway
+		authorID := r.Header.Get("X-User-Id")
+		if authorID == "" {
+			jsonresp.Error(w, "Missing X-User-Id header", http.StatusUnauthorized)
+			return
+		}
+
+		lastLoadedTimestamp, err := time.Parse(time.RFC3339, r.URL.Query().Get("last_loaded_timestamp"))
+		if err != nil {
+			jsonresp.Error(w, fmt.Sprintf("last_loaded_timestamp: should be in format %s", time.RFC3339), http.StatusBadRequest)
+			return
+		}
+		lastLoadedID := r.URL.Query().Get("last_loaded_id")
+		if err := validation.Validate(lastLoadedID, validation.Required, is.UUIDv4); err != nil {
+			jsonresp.Error(w, fmt.Sprintf("invalid last_loaded_id: %s", err.Error()), http.StatusBadRequest)
+			return
+		}
+		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+		if err != nil {
+			jsonresp.Error(w, "limit: should be an integer", http.StatusBadRequest)
+			return
+		}
+
+		cursor := model.Cursor{
+			LastLoadedTimestamp: lastLoadedTimestamp,
+			LastLoadedID:        lastLoadedID,
+		}
+		posts, nextCursor, err := postService.GetFeed(r.Context(), authorID, cursor, limit)
+		if errors.Is(err, service.ErrPostsPaginationLimitInvalid) {
+			jsonresp.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			log.Println(err)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusRequestTimeout)
+			return
+		}
+		if errors.Is(err, context.Canceled) {
+			// client disconnected
+			log.Println(err)
+			return
+		}
+		if err != nil {
+			log.Println(err)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusInternalServerError)
+			return
+		}
+
+		response := map[string]interface{}{
+			"status": "success",
+			"data": map[string]interface{}{
+				"posts":       posts,
+				"next_cursor": nextCursor,
+			},
+		}
+		jsonresp.Response(w, response, http.StatusOK)
+	}
 }

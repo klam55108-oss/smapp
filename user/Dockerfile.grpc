@@ -6,10 +6,10 @@ COPY common/go.mod common/go.su[m] ../common/
 RUN go mod download
 COPY common/. ../common
 COPY user/. .
-RUN go build -o main cmd/main.go
+RUN go build -o main cmd/grpc/main.go
 
 FROM alpine:3.20
 WORKDIR /app/user
 COPY --from=builder /app/user/main .
-EXPOSE 8081
+EXPOSE 50051
 CMD [ "./main"]

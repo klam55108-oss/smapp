@@ -41,3 +41,14 @@ func (svc *Follow) Create(ctx context.Context, followerID, followedID string) er
 	}
 	return nil
 }
+
+func (svc *Follow) GetFollowed(ctx context.Context, userID string) ([]string, error) {
+	fail := func(err error) ([]string, error) {
+		return nil, fmt.Errorf("get followed: %w", err)
+	}
+	followed, err := svc.followRepository.GetFollowed(ctx, userID)
+	if err != nil {
+		return fail(err)
+	}
+	return followed, nil
+}

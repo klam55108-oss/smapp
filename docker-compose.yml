@@ -2,7 +2,7 @@ services:
   user:
     build:
       context: .
-      dockerfile: user/Dockerfile
+      dockerfile: user/Dockerfile.http
     ports:
       - 127.0.0.1:8081:8081
     depends_on:
@@ -12,6 +12,17 @@ services:
     secrets:
       - mysql_password
       - jwt_secret
+  
+  user_grpc:
+    build:
+      context: .
+      dockerfile: user/Dockerfile.grpc
+    depends_on:
+      - user_db
+    env_file:
+      - user/.env
+    secrets:
+      - mysql_password
 
   user_db:
     image: mysql:8.0

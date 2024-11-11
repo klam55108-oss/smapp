@@ -9,6 +9,7 @@ import (
 	commondb "smapp/common/db"
 	commonenv "smapp/common/env"
 	imagePB "smapp/common/grpc/image"
+	userPB "smapp/common/grpc/user"
 	commonhttp "smapp/common/http"
 	"smapp/post/handlers"
 	"smapp/post/repository"
@@ -74,7 +75,14 @@ func main() {
 	}
 	defer db.Close()
 
-	conn, err := grpc.NewClient("image_grpc:50055", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("user_grpc:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+	userClient := userPB.NewUserClient(conn)
+
+	conn, err = grpc.NewClient("image_grpc:50055", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -86,7 +94,7 @@ func main() {
 	postLikeRepository := repository.NewPostLike(db)
 	commentLikeRepository := repository.NewCommentLike(db)
 
-	postService := service.NewPost(postRepository, imageClient, commentRepository, postLikeRepository)
+	postService := service.NewPost(postRepository, commentRepository, postLikeRepository, userClient, imageClient)
 	commentService := service.NewComment(commentRepository, postRepository)
 	postLikeService := service.NewPostLike(postLikeRepository, postRepository)
 	commentLikeService := service.NewCommentLike(commentLikeRepository, commentRepository)
@@ -98,6 +106,7 @@ func main() {
 	r.Handle("/posts/{post_id}/comments", handlers.GetComments(commentService)).Methods(http.MethodGet)
 	r.Handle("/posts/{entity_id}/likes", handlers.CreateLike(postLikeService)).Methods(http.MethodPost)
 	r.Handle("/comments/{entity_id}/likes", handlers.CreateLike(commentLikeService)).Methods(http.MethodPost)
+	r.Handle("/feed", handlers.GetFeed(postService)).Methods(http.MethodGet)
 	r.Use(commonhttp.WithRequestContextTimeout(defaultTimeout))
 
 	srv := &http.Server{

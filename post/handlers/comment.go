@@ -129,7 +129,7 @@ func GetComments(commentService *service.Comment) http.Handler {
 			LastLoadedID:        lastLoadedID,
 		}
 		comments, nextCursor, err := commentService.GetPaginatedWithLikeCount(r.Context(), postID, cursor, limit)
-		if errors.Is(err, service.ErrCommentsPaginationLimitExceeded) {
+		if errors.Is(err, service.ErrCommentsPaginationLimitInvalid) {
 			jsonresp.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}

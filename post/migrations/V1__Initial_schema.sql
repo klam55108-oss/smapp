@@ -2,7 +2,9 @@ CREATE TABLE posts (
     id BINARY(16) PRIMARY KEY,
     author_id BINARY(16) NOT NULL,
     body TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- Index to speed up ORDER BY when fetching paginated feed
+    INDEX created_at_id_index (created_at DESC, id)
 );
 
 CREATE TABLE likes (

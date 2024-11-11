@@ -4,31 +4,32 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"smapp/post/config"
 	"smapp/post/model"
 	"smapp/post/repository"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	imagePB "smapp/common/grpc/image"
+	userPB "smapp/common/grpc/user"
 )
 
 type Post struct {
 	postRepository    *repository.Post
-	imageClient       imagePB.ImageClient
 	commentRepository *repository.Comment
 	likeRepository    *repository.Like
+	userClient        userPB.UserClient
+	imageClient       imagePB.ImageClient
 }
 
 func NewPost(
-	postRepository *repository.Post, imageClient imagePB.ImageClient, commentRepository *repository.Comment,
-	likeRepository *repository.Like,
+	postRepository *repository.Post, commentRepository *repository.Comment, likeRepository *repository.Like,
+	userClient userPB.UserClient, imageClient imagePB.ImageClient,
 ) *Post {
 	return &Post{
 		postRepository:    postRepository,
-		imageClient:       imageClient,
 		commentRepository: commentRepository,
 		likeRepository:    likeRepository,
+		imageClient:       imageClient,
+		userClient:        userClient,
 	}
 }
 
@@ -47,8 +48,8 @@ func (svc *Post) Create(
 			Key:    image.Key,
 		})
 
-		if status.Code(err) != codes.OK {
-			return "", fmt.Errorf("%w: %s", ErrInvalidImage, err)
+		if err != nil {
+			return "", fmt.Errorf("%w: %w", ErrInvalidImage, err)
 		}
 	}
 
@@ -89,4 +90,37 @@ func (svc *Post) GetWithCounts(ctx context.Context, id string) (model.Post, erro
 	post.LikeCount = &likeCount
 
 	return post, nil
+}
+
+var ErrPostsPaginationLimitInvalid = errors.New("posts pagination limit invalid")
+
+func (svc *Post) GetFeed(
+	ctx context.Context, authorID string, cursor model.Cursor, limit int,
+) ([]model.Post, *model.Cursor, error) {
+	fail := func(err error) ([]model.Post, *model.Cursor, error) {
+		return nil, nil, fmt.Errorf("get feed: %w", err)
+	}
+
+	if limit < 1 || limit > config.CommentsPaginationLimit {
+		return nil, nil, fmt.Errorf(
+			"%w, should be in range: [1, %d]",
+			ErrPostsPaginationLimitInvalid, config.CommentsPaginationLimit,
+		)
+	}
+
+	followed, err := svc.userClient.GetFollowed(ctx, &userPB.GetFollowedRequest{UserId: authorID})
+	if err != nil {
+		return fail(err)
+	}
+	userIDs := followed.UserIds
+	if len(userIDs) == 0 {
+		return []model.Post{}, nil, nil
+	}
+
+	posts, nextCursor, err := svc.postRepository.GetWithCountsByUserIDs(ctx, userIDs, cursor, limit)
+	if err != nil {
+		return fail(err)
+	}
+
+	return posts, nextCursor, nil
 }

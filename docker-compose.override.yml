@@ -7,6 +7,14 @@ services:
         - action: rebuild
           path: common
 
+  user_grpc:
+    develop:
+      watch:
+        - action: rebuild
+          path: user
+        - action: rebuild
+          path: common
+
   post:
     develop:
       watch:

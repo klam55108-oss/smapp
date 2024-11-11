@@ -37,7 +37,7 @@ func (svc *Comment) Create(ctx context.Context, postID, authorID, body string) (
 	return id, nil
 }
 
-var ErrCommentsPaginationLimitExceeded = errors.New("comments pagination limit exceeded")
+var ErrCommentsPaginationLimitInvalid = errors.New("comments pagination limit invalid")
 
 func (svc *Comment) GetPaginatedWithLikeCount(
 	ctx context.Context, postID string, cursor model.Cursor, limit int,
@@ -46,10 +46,10 @@ func (svc *Comment) GetPaginatedWithLikeCount(
 		return nil, nil, fmt.Errorf("get comments: %w", err)
 	}
 
-	if limit > config.CommentsPaginationLimit {
+	if limit < 1 || limit > config.CommentsPaginationLimit {
 		return nil, nil, fmt.Errorf(
-			"%w, maximum allowed: %d",
-			ErrCommentsPaginationLimitExceeded, config.CommentsPaginationLimit,
+			"%w, should be in range: [1, %d]",
+			ErrCommentsPaginationLimitInvalid, config.CommentsPaginationLimit,
 		)
 	}
 
