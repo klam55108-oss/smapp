@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"smapp/post/config"
 	"smapp/post/model"
 	"smapp/post/repository"
 )
@@ -32,11 +34,20 @@ func (svc *Comment) Create(ctx context.Context, postID, authorID, body string) (
 	return id, nil
 }
 
+var ErrCommentsPaginationLimitExceeded = errors.New("comments pagination limit exceeded")
+
 func (svc *Comment) GetPaginatedWithLikeCount(
 	ctx context.Context, postID string, cursor model.Cursor, limit int,
 ) ([]model.Comment, *model.Cursor, error) {
 	fail := func(err error) ([]model.Comment, *model.Cursor, error) {
 		return nil, nil, fmt.Errorf("get comments: %w", err)
+	}
+
+	if limit > config.CommentsPaginationLimit {
+		return nil, nil, fmt.Errorf(
+			"%w, maximum allowed: %d",
+			ErrCommentsPaginationLimitExceeded, config.CommentsPaginationLimit,
+		)
 	}
 
 	if err := svc.postRepository.CheckExists(ctx, postID); err != nil {

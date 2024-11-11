@@ -130,6 +130,10 @@ func GetComments(commentService *service.Comment) http.Handler {
 			LastLoadedID:        lastLoadedID,
 		}
 		comments, nextCursor, err := commentService.GetPaginatedWithLikeCount(r.Context(), postID, cursor, limit)
+		if errors.Is(err, service.ErrCommentsPaginationLimitExceeded) {
+			jsonresp.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		if errors.Is(err, repository.ErrPostDoesNotExist) {
 			jsonresp.Error(w, "Post not found", http.StatusNotFound)
 			log.Println(err)
