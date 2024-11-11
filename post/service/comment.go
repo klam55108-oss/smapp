@@ -27,6 +27,9 @@ func (svc *Comment) Create(ctx context.Context, postID, authorID, body string) (
 	}
 
 	id, err := svc.commentRepository.Create(ctx, postID, authorID, body)
+	if errors.Is(err, repository.ErrPostIDNotFound) {
+		return "", fmt.Errorf("%w: %s", ErrPostNotFound, postID)
+	}
 	if err != nil {
 		return fail(err)
 	}
@@ -51,6 +54,9 @@ func (svc *Comment) GetPaginatedWithLikeCount(
 	}
 
 	if err := svc.postRepository.CheckExists(ctx, postID); err != nil {
+		if errors.Is(err, repository.ErrRecordNotFound) {
+			return nil, nil, fmt.Errorf("%w: %s", ErrPostNotFound, postID)
+		}
 		return fail(err)
 	}
 

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"smapp/post/model"
 	"smapp/post/repository"
@@ -47,7 +48,7 @@ func (svc *Post) Create(
 		})
 
 		if status.Code(err) != codes.OK {
-			return fail(fmt.Errorf("%w: %s", ErrInvalidImage, err))
+			return "", fmt.Errorf("%w: %s", ErrInvalidImage, err)
 		}
 	}
 
@@ -68,6 +69,9 @@ func (svc *Post) GetWithCounts(ctx context.Context, id string) (model.Post, erro
 	}
 
 	post, err := svc.postRepository.Get(ctx, id)
+	if errors.Is(err, repository.ErrRecordNotFound) {
+		return model.Post{}, fmt.Errorf("%w: %s", ErrPostNotFound, id)
+	}
 	if err != nil {
 		return fail(err)
 	}

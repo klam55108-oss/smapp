@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"smapp/common/jsonresp"
-	"smapp/user/repository"
 	"smapp/user/service"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -38,11 +37,11 @@ func Follow(followService *service.Follow) http.Handler {
 			jsonresp.Error(w, "Cannot follow self", http.StatusBadRequest)
 			return
 		}
-		if errors.Is(err, repository.ErrUserDoesNotExist) {
+		if errors.Is(err, service.ErrUserNotFound) {
 			jsonresp.Error(w, "User not found", http.StatusNotFound)
 			return
 		}
-		if errors.Is(err, repository.ErrFollowExists) {
+		if errors.Is(err, service.ErrFollowExists) {
 			response := map[string]interface{}{"status": "unchanged"}
 			jsonresp.Response(w, response, http.StatusOK)
 			return

@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"smapp/common/jsonresp"
-	"smapp/post/repository"
 	"smapp/post/service"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -34,17 +33,17 @@ func CreateLike(likeService *service.Like) http.Handler {
 		}
 
 		err := likeService.Create(r.Context(), entityID, authorID)
-		if errors.Is(err, repository.ErrPostDoesNotExist) {
+		if errors.Is(err, service.ErrPostNotFound) {
 			jsonresp.Error(w, "Post ID does not exist", http.StatusBadRequest)
 			log.Println(err)
 			return
 		}
-		if errors.Is(err, repository.ErrCommentDoesNotExist) {
+		if errors.Is(err, service.ErrCommentNotFound) {
 			jsonresp.Error(w, "Comment ID does not exist", http.StatusBadRequest)
 			log.Println(err)
 			return
 		}
-		if errors.Is(err, repository.ErrLikeExists) {
+		if errors.Is(err, service.ErrLikeExists) {
 			response := map[string]interface{}{"status": "unchanged"}
 			jsonresp.Response(w, response, http.StatusOK)
 			return

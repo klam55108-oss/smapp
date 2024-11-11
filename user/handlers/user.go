@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"regexp"
 	"smapp/common/jsonresp"
-	"smapp/user/repository"
 	"smapp/user/service"
 	"strings"
 
@@ -63,11 +62,11 @@ func Signup(userService *service.User) http.Handler {
 		}
 
 		token, err := userService.Signup(r.Context(), user.Name, user.Email, user.Handle, user.Password)
-		if errors.Is(err, repository.ErrEmailExists) {
+		if errors.Is(err, service.ErrEmailExists) {
 			jsonresp.Error(w, "Email already exists", http.StatusConflict)
 			return
 		}
-		if errors.Is(err, repository.ErrHandleExists) {
+		if errors.Is(err, service.ErrHandleExists) {
 			jsonresp.Error(w, "Handle already exists", http.StatusConflict)
 			return
 		}
@@ -152,7 +151,7 @@ func Login(userService *service.User) http.Handler {
 		}
 
 		token, err := userService.Login(r.Context(), user.Identifier, []byte(user.Password))
-		if errors.Is(err, repository.ErrUserDoesNotExist) || errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+		if errors.Is(err, service.ErrUserNotFound) || errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			jsonresp.Error(w, wrongCredentialsMessage, http.StatusUnauthorized)
 			return
 		}

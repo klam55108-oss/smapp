@@ -17,16 +17,25 @@ func NewFollow(followRepository *repository.Follow) *Follow {
 	}
 }
 
-var ErrSelfFollow = errors.New("cannot follow self")
+var (
+	ErrSelfFollow   = errors.New("cannot follow self")
+	ErrFollowExists = errors.New("follow already exists")
+)
 
 func (svc *Follow) Create(ctx context.Context, followerID, followedID string) error {
 	fail := func(err error) error {
 		return fmt.Errorf("create follow: %w", err)
 	}
 	if followerID == followedID {
-		return fail(ErrSelfFollow)
+		return ErrSelfFollow
 	}
 	err := svc.followRepository.Create(ctx, followerID, followedID)
+	if errors.Is(err, repository.ErrUserIDNotFound) {
+		return fmt.Errorf("%w: %s", ErrUserNotFound, followedID)
+	}
+	if errors.Is(err, repository.ErrRecordExists) {
+		return ErrFollowExists
+	}
 	if err != nil {
 		return fail(err)
 	}

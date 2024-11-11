@@ -23,8 +23,6 @@ func NewCommentLike(db *sql.DB) *Like {
 	return &Like{db: db, entityType: model.CommentType}
 }
 
-var ErrLikeExists = errors.New("like already exists")
-
 func (l *Like) Create(ctx context.Context, entityID, authorID string) error {
 	fail := func(err error) error {
 		return fmt.Errorf("add like to db: %w", err)
@@ -62,7 +60,7 @@ func (l *Like) Create(ctx context.Context, entityID, authorID string) error {
 		return fail(err)
 	}
 	if rowsAffected == 0 {
-		return fail(ErrLikeExists)
+		return ErrRecordExists
 	}
 
 	countID, err := uuid.NewRandom()

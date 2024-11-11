@@ -11,12 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-var (
-	ErrEmailExists      = errors.New("email already exists")
-	ErrHandleExists     = errors.New("handle already exists")
-	ErrUserDoesNotExist = errors.New("user does not exist")
-)
-
 type User struct {
 	db *sql.DB
 }
@@ -25,10 +19,19 @@ func NewUser(db *sql.DB) *User {
 	return &User{db: db}
 }
 
+var (
+	ErrEmailExists  = errors.New("email already exists")
+	ErrHandleExists = errors.New("handle already exists")
+)
+
 func (u *User) Create(ctx context.Context, name, email, handle, passwordHash string) (string, error) {
+	fail := func(err error) (string, error) {
+		return "", fmt.Errorf("insert user in db: %w", err)
+	}
+
 	id, err := uuid.NewRandom()
 	if err != nil {
-		return "", fmt.Errorf("insert user in db: %w", err)
+		return fail(err)
 	}
 	_, err = u.db.ExecContext(
 		ctx,
@@ -38,21 +41,25 @@ func (u *User) Create(ctx context.Context, name, email, handle, passwordHash str
 	var mysqlError *mysql.MySQLError
 	if errors.As(err, &mysqlError) && mysqlError.Number == 1062 {
 		if strings.Contains(mysqlError.Message, "email_unique") {
-			return "", fmt.Errorf("insert user in db: %w", ErrEmailExists)
+			return "", ErrEmailExists
 		} else if strings.Contains(mysqlError.Message, "handle_unique") {
-			return "", fmt.Errorf("insert user in db: %w", ErrHandleExists)
+			return "", ErrHandleExists
 		} else {
-			return "", fmt.Errorf("insert user in db: unexprected unique constraint: %w", err)
+			return fail(fmt.Errorf("unexpected unique constraint: %w", err))
 		}
 	}
 	if err != nil {
-		return "", fmt.Errorf("insert user in db: %w", err)
+		return fail(err)
 	}
 
 	return id.String(), nil
 }
 
 func (u *User) GetAuthData(ctx context.Context, identifier string) (string, []byte, error) {
+	fail := func(err error) (string, []byte, error) {
+		return "", nil, fmt.Errorf("get auth data from db: %w", err)
+	}
+
 	var id uuid.UUID
 	var passwordHash []byte
 	err := u.db.QueryRowContext(
@@ -61,10 +68,10 @@ func (u *User) GetAuthData(ctx context.Context, identifier string) (string, []by
 		identifier,
 	).Scan(&id, &passwordHash)
 	if errors.Is(err, sql.ErrNoRows) {
-		return "", nil, fmt.Errorf("get auth data from db: %w", ErrUserDoesNotExist)
+		return "", nil, ErrRecordNotFound
 	}
 	if err != nil {
-		return "", nil, fmt.Errorf("get auth data from db: %w", err)
+		return fail(err)
 	}
 	return id.String(), passwordHash, nil
 }

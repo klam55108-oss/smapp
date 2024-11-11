@@ -18,8 +18,6 @@ func NewPost(db *sql.DB) *Post {
 	return &Post{db: db}
 }
 
-var ErrPostDoesNotExist = fmt.Errorf("post does not exist")
-
 func (p *Post) Create(ctx context.Context, body, authorID string, images []model.ImageLocation) (string, error) {
 	fail := func(err error) (string, error) {
 		return "", fmt.Errorf("add post to db: %w", err)
@@ -88,7 +86,7 @@ func (p *Post) CheckExists(ctx context.Context, id string) error {
 		return fail(err)
 	}
 	if !exists {
-		return fail(fmt.Errorf("%w: %s", ErrPostDoesNotExist, id))
+		return ErrRecordNotFound
 	}
 	return nil
 }
@@ -113,7 +111,7 @@ func (p *Post) Get(ctx context.Context, id string) (model.Post, error) {
 		postUUID[:],
 	).Scan(&authorIDBytes, &post.Body, &post.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		return fail(fmt.Errorf("%w: %s", ErrPostDoesNotExist, id))
+		return model.Post{}, ErrRecordNotFound
 	}
 	if err != nil {
 		return fail(err)

@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"smapp/common/jsonresp"
 	"smapp/post/model"
-	"smapp/post/repository"
 	"smapp/post/service"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -125,7 +124,7 @@ func GetPost(postService *service.Post) http.Handler {
 		}
 
 		post, err := postService.GetWithCounts(r.Context(), postID)
-		if errors.Is(err, repository.ErrPostDoesNotExist) {
+		if errors.Is(err, service.ErrPostNotFound) {
 			jsonresp.Error(w, "Post not found", http.StatusNotFound)
 			log.Println(err)
 			return

@@ -19,8 +19,6 @@ func NewComment(db *sql.DB) *Comment {
 	return &Comment{db: db}
 }
 
-var ErrCommentDoesNotExist = fmt.Errorf("comment does not exist")
-
 func (c *Comment) Create(ctx context.Context, postID, authorID, body string) (string, error) {
 	fail := func(err error) (string, error) {
 		return "", fmt.Errorf("add comment to db: %w", err)
@@ -52,7 +50,7 @@ func (c *Comment) Create(ctx context.Context, postID, authorID, body string) (st
 	)
 	var mysqlError *mysql.MySQLError
 	if errors.As(err, &mysqlError) && mysqlError.Number == 1452 {
-		return fail(fmt.Errorf("%w: %s", ErrPostDoesNotExist, postID))
+		return "", ErrPostIDNotFound
 	}
 	if err != nil {
 		return fail(changeErrIfCtxDone(ctx, err))
@@ -97,7 +95,7 @@ func (c *Comment) CheckExists(ctx context.Context, id string) error {
 		return fail(err)
 	}
 	if !exists {
-		return fail(fmt.Errorf("%w: %s", ErrCommentDoesNotExist, id))
+		return ErrRecordNotFound
 	}
 	return nil
 }

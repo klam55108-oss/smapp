@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"smapp/common/jsonresp"
 	"smapp/post/model"
-	"smapp/post/repository"
 	"smapp/post/service"
 	"strconv"
 	"time"
@@ -68,7 +67,7 @@ func CreateComment(commentService *service.Comment) http.Handler {
 		}
 
 		id, err := commentService.Create(r.Context(), postID, authorID, comment.Body)
-		if errors.Is(err, repository.ErrPostDoesNotExist) {
+		if errors.Is(err, service.ErrPostNotFound) {
 			jsonresp.Error(w, "Post ID does not exist", http.StatusBadRequest)
 			log.Println(err)
 			return
@@ -134,7 +133,7 @@ func GetComments(commentService *service.Comment) http.Handler {
 			jsonresp.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if errors.Is(err, repository.ErrPostDoesNotExist) {
+		if errors.Is(err, service.ErrPostNotFound) {
 			jsonresp.Error(w, "Post not found", http.StatusNotFound)
 			log.Println(err)
 			return
