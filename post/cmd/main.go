@@ -10,7 +10,7 @@ import (
 	commonenv "smapp/common/env"
 	imagePB "smapp/common/grpc/image"
 	userPB "smapp/common/grpc/user"
-	commonhttp "smapp/common/http"
+	commonmw "smapp/common/middleware"
 	"smapp/post/handlers"
 	"smapp/post/repository"
 	"smapp/post/service"
@@ -100,14 +100,36 @@ func main() {
 	commentLikeService := service.NewCommentLike(commentLikeRepository, commentRepository)
 
 	r := mux.NewRouter()
-	r.Handle("/posts", handlers.CreatePost(postService)).Methods(http.MethodPost)
-	r.Handle("/posts/{post_id}", handlers.GetPost(postService)).Methods(http.MethodGet)
-	r.Handle("/posts/{post_id}/comments", handlers.CreateComment(commentService)).Methods(http.MethodPost)
-	r.Handle("/posts/{post_id}/comments", handlers.GetComments(commentService)).Methods(http.MethodGet)
-	r.Handle("/posts/{entity_id}/likes", handlers.CreateLike(postLikeService)).Methods(http.MethodPost)
-	r.Handle("/comments/{entity_id}/likes", handlers.CreateLike(commentLikeService)).Methods(http.MethodPost)
-	r.Handle("/feed", handlers.GetFeed(postService)).Methods(http.MethodGet)
-	r.Use(commonhttp.WithRequestContextTimeout(defaultTimeout))
+	r.Handle(
+		"/posts",
+		commonmw.ParseUserID(handlers.CreatePost(postService)),
+	).Methods(http.MethodPost)
+	r.Handle(
+		"/posts/{post_id}",
+		handlers.GetPost(postService),
+	).Methods(http.MethodGet)
+	r.Handle(
+		"/posts/{post_id}/comments",
+		commonmw.ParseUserID(handlers.CreateComment(commentService)),
+	).Methods(http.MethodPost)
+	r.Handle(
+		"/posts/{post_id}/comments",
+		handlers.GetComments(commentService),
+	).Methods(http.MethodGet)
+	r.Handle(
+		"/posts/{entity_id}/likes",
+		commonmw.ParseUserID(handlers.CreateLike(postLikeService)),
+	).Methods(http.MethodPost)
+	r.Handle(
+		"/comments/{entity_id}/likes",
+		commonmw.ParseUserID(handlers.CreateLike(commentLikeService)),
+	).Methods(http.MethodPost)
+	r.Handle(
+		"/feed",
+		commonmw.ParseUserID(handlers.GetFeed(postService)),
+	).Methods(http.MethodGet)
+
+	r.Use(commonmw.WithRequestContextTimeout(defaultTimeout))
 
 	srv := &http.Server{
 		Addr:        ":8082",

@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"smapp/common/jsonresp"
+	commonmw "smapp/common/middleware"
 	"smapp/post/model"
 	"smapp/post/service"
 	"strconv"
@@ -55,10 +56,10 @@ func CreateComment(commentService *service.Comment) http.Handler {
 			return
 		}
 
-		// Headers set by the gateway
-		authorID, err := uuid.Parse(r.Header.Get("X-User-Id"))
+		authorID, err := commonmw.GetUserID(r.Context())
 		if err != nil {
-			jsonresp.Error(w, fmt.Sprintf("Invalid X-User-Id header: %s", err.Error()), http.StatusUnauthorized)
+			log.Println(err)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusInternalServerError)
 			return
 		}
 

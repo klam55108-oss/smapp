@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	commonenv "smapp/common/env"
-	commonhttp "smapp/common/http"
+	commonmw "smapp/common/middleware"
 	"smapp/image/handlers"
 	"smapp/image/service"
 
@@ -59,13 +59,14 @@ func main() {
 	r := mux.NewRouter()
 	r.Handle(
 		"/upload-form/profile",
-		handlers.GenerateUploadForm(generateUploadFormService, "profile", profileImgLimit),
+		commonmw.ParseUserID(handlers.GenerateUploadForm(generateUploadFormService, "profile", profileImgLimit)),
 	).Methods(http.MethodGet)
 	r.Handle(
 		"/upload-form/post",
-		handlers.GenerateUploadForm(generateUploadFormService, "post", postImgLimit),
+		commonmw.ParseUserID(handlers.GenerateUploadForm(generateUploadFormService, "post", postImgLimit)),
 	).Methods(http.MethodGet)
-	r.Use(commonhttp.WithRequestContextTimeout(defaultTimeout))
+
+	r.Use(commonmw.WithRequestContextTimeout(defaultTimeout))
 
 	srv := &http.Server{
 		Addr:        ":8085",

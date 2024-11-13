@@ -3,22 +3,20 @@ package handlers
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
+	commonmw "smapp/common/middleware"
 
 	"smapp/common/jsonresp"
 	"smapp/image/service"
-
-	"github.com/google/uuid"
 )
 
 func GenerateUploadForm(svc *service.GenerateUploadForm, imgPurpose string, imgSizeLimit int64) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Headers set by the gateway
-		userID, err := uuid.Parse(r.Header.Get("X-User-Id"))
+		userID, err := commonmw.GetUserID(r.Context())
 		if err != nil {
-			jsonresp.Error(w, fmt.Sprintf("Invalid X-User-Id header: %s", err.Error()), http.StatusUnauthorized)
+			log.Println(err)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusInternalServerError)
 			return
 		}
 

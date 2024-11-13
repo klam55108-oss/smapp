@@ -10,7 +10,7 @@ import (
 
 	commondb "smapp/common/db"
 	commonenv "smapp/common/env"
-	commonhttp "smapp/common/http"
+	commonmw "smapp/common/middleware"
 	"smapp/user/handlers"
 	"smapp/user/repository"
 	"smapp/user/service"
@@ -101,8 +101,11 @@ func main() {
 	r := mux.NewRouter()
 	r.Handle("/signup", handlers.Signup(userService)).Methods(http.MethodPost)
 	r.Handle("/login", handlers.Login(userService)).Methods(http.MethodPost)
-	r.Handle("/users/{user_id}/follow", handlers.Follow(followService)).Methods(http.MethodPost)
-	r.Use(commonhttp.WithRequestContextTimeout(defaultTimeout))
+	r.Handle(
+		"/users/{user_id}/follow",
+		commonmw.ParseUserID(handlers.Follow(followService)),
+	).Methods(http.MethodPost)
+	r.Use(commonmw.WithRequestContextTimeout(defaultTimeout))
 
 	srv := &http.Server{
 		Addr:        ":8081",
