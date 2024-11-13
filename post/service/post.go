@@ -7,6 +7,7 @@ import (
 	"smapp/post/config"
 	"smapp/post/model"
 	"smapp/post/repository"
+	"strings"
 
 	imagePB "smapp/common/grpc/image"
 	userPB "smapp/common/grpc/user"
@@ -35,7 +36,7 @@ func NewPost(
 	}
 }
 
-var ErrInvalidImage = fmt.Errorf("image does not exist or not accessible")
+var ErrInvalidImage = fmt.Errorf("image invalid or inaccessible")
 
 func (svc *Post) Create(
 	ctx context.Context, body string, authorID uuid.UUID, images []model.ImageLocation,
@@ -45,6 +46,11 @@ func (svc *Post) Create(
 	}
 
 	for _, image := range images {
+		// Make sure the image was uploaded specifically for the post, because different image types have different size limits.
+		if !strings.HasPrefix(image.Key, "images/post") {
+			return uuid.Nil, fmt.Errorf("%w: %s", ErrInvalidImage, "post image must have 'images/post' prefix")
+		}
+
 		_, err := svc.imageClient.CheckObjectExists(ctx, &imagePB.ObjectExistsRequest{
 			Bucket: image.Bucket,
 			Key:    image.Key,
