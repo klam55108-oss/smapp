@@ -24,9 +24,9 @@ var (
 	ErrHandleExists = errors.New("handle already exists")
 )
 
-func (u *User) Create(ctx context.Context, name, email, handle, passwordHash string) (string, error) {
-	fail := func(err error) (string, error) {
-		return "", fmt.Errorf("insert user in db: %w", err)
+func (u *User) Create(ctx context.Context, name, email, handle, passwordHash string) (uuid.UUID, error) {
+	fail := func(err error) (uuid.UUID, error) {
+		return uuid.Nil, fmt.Errorf("insert user in db: %w", err)
 	}
 
 	id, err := uuid.NewRandom()
@@ -41,9 +41,9 @@ func (u *User) Create(ctx context.Context, name, email, handle, passwordHash str
 	var mysqlError *mysql.MySQLError
 	if errors.As(err, &mysqlError) && mysqlError.Number == 1062 {
 		if strings.Contains(mysqlError.Message, "email_unique") {
-			return "", ErrEmailExists
+			return uuid.Nil, ErrEmailExists
 		} else if strings.Contains(mysqlError.Message, "handle_unique") {
-			return "", ErrHandleExists
+			return uuid.Nil, ErrHandleExists
 		} else {
 			return fail(fmt.Errorf("unexpected unique constraint: %w", err))
 		}
@@ -52,12 +52,12 @@ func (u *User) Create(ctx context.Context, name, email, handle, passwordHash str
 		return fail(err)
 	}
 
-	return id.String(), nil
+	return id, nil
 }
 
-func (u *User) GetAuthData(ctx context.Context, identifier string) (string, []byte, error) {
-	fail := func(err error) (string, []byte, error) {
-		return "", nil, fmt.Errorf("get auth data from db: %w", err)
+func (u *User) GetAuthData(ctx context.Context, identifier string) (uuid.UUID, []byte, error) {
+	fail := func(err error) (uuid.UUID, []byte, error) {
+		return uuid.Nil, nil, fmt.Errorf("get auth data from db: %w", err)
 	}
 
 	var id uuid.UUID
@@ -68,12 +68,12 @@ func (u *User) GetAuthData(ctx context.Context, identifier string) (string, []by
 		identifier,
 	).Scan(&id, &passwordHash)
 	if errors.Is(err, sql.ErrNoRows) {
-		return "", nil, ErrRecordNotFound
+		return uuid.Nil, nil, ErrRecordNotFound
 	}
 	if err != nil {
 		return fail(err)
 	}
-	return id.String(), passwordHash, nil
+	return id, passwordHash, nil
 }
 
 func getIdentiferType(identifier string) string {

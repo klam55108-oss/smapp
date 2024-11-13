@@ -18,23 +18,15 @@ func NewFollow(db *sql.DB) *Follow {
 	return &Follow{db: db}
 }
 
-func (f *Follow) Create(ctx context.Context, followerID, followedID string) error {
+func (f *Follow) Create(ctx context.Context, followerID, followedID uuid.UUID) error {
 	fail := func(err error) error {
 		return fmt.Errorf("add follow to db: %w", err)
 	}
 
-	followerUUID, err := uuid.Parse(followerID)
-	if err != nil {
-		return fail(err)
-	}
-	followedUUID, err := uuid.Parse(followedID)
-	if err != nil {
-		return fail(err)
-	}
-	_, err = f.db.ExecContext(
+	_, err := f.db.ExecContext(
 		ctx,
 		"INSERT INTO follows (follower_id, followed_id) VALUES (?, ?)",
-		followerUUID[:], followedUUID[:],
+		followerID[:], followedID[:],
 	)
 	var mysqlError *mysql.MySQLError
 	if errors.As(err, &mysqlError) {
@@ -51,36 +43,28 @@ func (f *Follow) Create(ctx context.Context, followerID, followedID string) erro
 	return nil
 }
 
-func (f *Follow) GetFollowed(ctx context.Context, userID string) ([]string, error) {
-	fail := func(err error) ([]string, error) {
+func (f *Follow) GetFollowed(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
+	fail := func(err error) ([]uuid.UUID, error) {
 		return nil, fmt.Errorf("get followed from db: %w", err)
 	}
 
-	userUUID, err := uuid.Parse(userID)
-	if err != nil {
-		return fail(err)
-	}
 	rows, err := f.db.QueryContext(
 		ctx,
 		"SELECT followed_id FROM follows WHERE follower_id = ?",
-		userUUID[:],
+		userID[:],
 	)
 	if err != nil {
 		return fail(err)
 	}
 	defer rows.Close()
 
-	var followed []string
+	var followed []uuid.UUID
 	for rows.Next() {
-		var followedIDBytes []byte
-		if err := rows.Scan(&followedIDBytes); err != nil {
+		var followedID uuid.UUID
+		if err := rows.Scan(&followedID); err != nil {
 			return fail(err)
 		}
-		followedUUID, err := uuid.FromBytes(followedIDBytes)
-		if err != nil {
-			return fail(err)
-		}
-		followed = append(followed, followedUUID.String())
+		followed = append(followed, followedID)
 	}
 	if err := rows.Err(); err != nil {
 		return fail(err)

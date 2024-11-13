@@ -4,6 +4,7 @@ import (
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/google/uuid"
 )
 
 type EntityType string
@@ -14,8 +15,8 @@ const (
 )
 
 type Post struct {
-	ID           string          `json:"id"`
-	AuthorID     string          `json:"author_id"`
+	ID           uuid.UUID       `json:"id"`
+	AuthorID     uuid.UUID       `json:"author_id"`
 	Body         string          `json:"body"`
 	Images       []ImageLocation `json:"images"`
 	CreatedAt    time.Time       `json:"created_at"`
@@ -24,9 +25,9 @@ type Post struct {
 }
 
 type Comment struct {
-	ID        string    `json:"id"`
-	PostID    string    `json:"post_id"`
-	AuthorID  string    `json:"author_id"`
+	ID        uuid.UUID `json:"id"`
+	PostID    uuid.UUID `json:"post_id"`
+	AuthorID  uuid.UUID `json:"author_id"`
 	Body      string    `json:"body"`
 	CreatedAt time.Time `json:"created_at"`
 	LikeCount *uint32   `json:"like_count,omitempty"`
@@ -34,7 +35,7 @@ type Comment struct {
 
 type Cursor struct {
 	LastLoadedTimestamp time.Time `json:"last_loaded_timestamp"`
-	LastLoadedID        string    `json:"last_loaded_id"`
+	LastLoadedID        uuid.UUID `json:"last_loaded_id"`
 }
 
 type ImageLocation struct {

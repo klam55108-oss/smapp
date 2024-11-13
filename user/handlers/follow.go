@@ -9,30 +9,26 @@ import (
 	"smapp/common/jsonresp"
 	"smapp/user/service"
 
-	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/go-ozzo/ozzo-validation/v4/is"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
 func Follow(followService *service.Follow) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		followedID, ok := mux.Vars(r)["user_id"]
-		if !ok {
-			panic("follow: missing user ID")
-		}
-		if err := validation.Validate(followedID, validation.Required, is.UUIDv4); err != nil {
+		followedID, err := uuid.Parse(mux.Vars(r)["user_id"])
+		if err != nil {
 			jsonresp.Error(w, fmt.Sprintf("Invalid user ID: %s", err.Error()), http.StatusBadRequest)
 			return
 		}
 
 		// Headers set by the gateway
-		followerID := r.Header.Get("X-User-Id")
-		if followerID == "" {
-			jsonresp.Error(w, "Missing X-User-Id header", http.StatusUnauthorized)
+		followerID, err := uuid.Parse(r.Header.Get("X-User-Id"))
+		if err != nil {
+			jsonresp.Error(w, fmt.Sprintf("Invalid X-User-Id header: %s", err.Error()), http.StatusUnauthorized)
 			return
 		}
 
-		err := followService.Create(r.Context(), followerID, followedID)
+		err = followService.Create(r.Context(), followerID, followedID)
 		if errors.Is(err, service.ErrSelfFollow) {
 			jsonresp.Error(w, "Cannot follow self", http.StatusBadRequest)
 			return

@@ -23,7 +23,7 @@ func NewCommentLike(db *sql.DB) *Like {
 	return &Like{db: db, entityType: model.CommentType}
 }
 
-func (l *Like) Create(ctx context.Context, entityID, authorID string) error {
+func (l *Like) Create(ctx context.Context, entityID, authorID uuid.UUID) error {
 	fail := func(err error) error {
 		return fmt.Errorf("add like to db: %w", err)
 	}
@@ -38,19 +38,11 @@ func (l *Like) Create(ctx context.Context, entityID, authorID string) error {
 	if err != nil {
 		return fail(err)
 	}
-	entityUUID, err := uuid.Parse(entityID)
-	if err != nil {
-		return fail(err)
-	}
-	authorUUID, err := uuid.Parse(authorID)
-	if err != nil {
-		return fail(err)
-	}
 
 	result, err := tx.ExecContext(
 		ctx,
 		"INSERT IGNORE INTO likes (id, entity_type, entity_id, author_id) VALUES (?, ?, ?, ?)",
-		id[:], l.entityType, entityUUID[:], authorUUID[:],
+		id[:], l.entityType, entityID[:], authorID[:],
 	)
 	if err != nil {
 		return fail(changeErrIfCtxDone(ctx, err))
@@ -70,7 +62,7 @@ func (l *Like) Create(ctx context.Context, entityID, authorID string) error {
 	_, err = tx.ExecContext(
 		ctx,
 		"INSERT INTO likes_count (id, entity_type, entity_id, count) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE count = count + 1",
-		countID[:], l.entityType, entityUUID[:],
+		countID[:], l.entityType, entityID[:],
 	)
 	if err != nil {
 		return fail(changeErrIfCtxDone(ctx, err))
@@ -82,21 +74,16 @@ func (l *Like) Create(ctx context.Context, entityID, authorID string) error {
 	return nil
 }
 
-func (l *Like) GetCount(ctx context.Context, entityID string) (uint32, error) {
+func (l *Like) GetCount(ctx context.Context, entityID uuid.UUID) (uint32, error) {
 	fail := func(err error) (uint32, error) {
 		return 0, fmt.Errorf("get like count from db: %w", err)
 	}
 
-	entityUUID, err := uuid.Parse(entityID)
-	if err != nil {
-		return fail(err)
-	}
-
 	var count uint32
-	err = l.db.QueryRowContext(
+	err := l.db.QueryRowContext(
 		ctx,
 		"SELECT count FROM likes_count WHERE entity_type = ? AND entity_id = ?",
-		l.entityType, entityUUID[:],
+		l.entityType, entityID[:],
 	).Scan(&count)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, nil

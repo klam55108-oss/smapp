@@ -7,9 +7,9 @@ service User {
 }
 
 message GetFollowedRequest {
-    string user_id = 1;
+    bytes user_id = 1;
 }
 
 message GetFollowedResponse {
-    repeated string user_ids = 1;
+    repeated bytes user_ids = 1;
 }

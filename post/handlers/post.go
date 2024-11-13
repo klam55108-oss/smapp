@@ -14,7 +14,7 @@ import (
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/go-ozzo/ozzo-validation/v4/is"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
@@ -77,9 +77,9 @@ func CreatePost(postService *service.Post) http.Handler {
 		}
 
 		// Headers set by the gateway
-		authorID := r.Header.Get("X-User-Id")
-		if authorID == "" {
-			jsonresp.Error(w, "Missing X-User-Id header", http.StatusUnauthorized)
+		authorID, err := uuid.Parse(r.Header.Get("X-User-Id"))
+		if err != nil {
+			jsonresp.Error(w, fmt.Sprintf("Invalid X-User-Id header: %s", err.Error()), http.StatusUnauthorized)
 			return
 		}
 
@@ -115,11 +115,7 @@ func CreatePost(postService *service.Post) http.Handler {
 
 func GetPost(postService *service.Post) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		postID, ok := mux.Vars(r)["post_id"]
-		if !ok {
-			panic("get post: missing post ID")
-		}
-		err := validation.Validate(postID, is.UUIDv4)
+		postID, err := uuid.Parse(mux.Vars(r)["post_id"])
 		if err != nil {
 			jsonresp.Error(w, fmt.Sprintf("Invalid post ID: %s", err.Error()), http.StatusBadRequest)
 			return
@@ -158,9 +154,9 @@ func GetPost(postService *service.Post) http.Handler {
 func GetFeed(postService *service.Post) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Headers set by the gateway
-		authorID := r.Header.Get("X-User-Id")
-		if authorID == "" {
-			jsonresp.Error(w, "Missing X-User-Id header", http.StatusUnauthorized)
+		authorID, err := uuid.Parse(r.Header.Get("X-User-Id"))
+		if err != nil {
+			jsonresp.Error(w, fmt.Sprintf("Invalid X-User-Id header: %s", err.Error()), http.StatusUnauthorized)
 			return
 		}
 
@@ -169,9 +165,9 @@ func GetFeed(postService *service.Post) http.HandlerFunc {
 			jsonresp.Error(w, fmt.Sprintf("last_loaded_timestamp: should be in format %s", time.RFC3339), http.StatusBadRequest)
 			return
 		}
-		lastLoadedID := r.URL.Query().Get("last_loaded_id")
-		if err := validation.Validate(lastLoadedID, validation.Required, is.UUIDv4); err != nil {
-			jsonresp.Error(w, fmt.Sprintf("invalid last_loaded_id: %s", err.Error()), http.StatusBadRequest)
+		lastLoadedID, err := uuid.Parse(r.URL.Query().Get("last_loaded_id"))
+		if err != nil {
+			jsonresp.Error(w, fmt.Sprintf("Invalid last_loaded_id: %s", err.Error()), http.StatusBadRequest)
 			return
 		}
 		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))

@@ -9,30 +9,26 @@ import (
 	"smapp/common/jsonresp"
 	"smapp/post/service"
 
-	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/go-ozzo/ozzo-validation/v4/is"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
 func CreateLike(likeService *service.Like) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		entityID, ok := mux.Vars(r)["entity_id"]
-		if !ok {
-			panic("create like: missing entity ID")
-		}
-		if err := validation.Validate(entityID, validation.Required, is.UUIDv4); err != nil {
+		entityID, err := uuid.Parse(mux.Vars(r)["entity_id"])
+		if err != nil {
 			jsonresp.Error(w, fmt.Sprintf("Invalid entity ID: %s", err.Error()), http.StatusBadRequest)
 			return
 		}
 
 		// Headers set by the gateway
-		authorID := r.Header.Get("X-User-Id")
-		if authorID == "" {
-			jsonresp.Error(w, "Missing X-User-Id header", http.StatusUnauthorized)
+		authorID, err := uuid.Parse(r.Header.Get("X-User-Id"))
+		if err != nil {
+			jsonresp.Error(w, fmt.Sprintf("Invalid X-User-Id header: %s", err.Error()), http.StatusUnauthorized)
 			return
 		}
 
-		err := likeService.Create(r.Context(), entityID, authorID)
+		err = likeService.Create(r.Context(), entityID, authorID)
 		if errors.Is(err, service.ErrPostNotFound) {
 			jsonresp.Error(w, "Post ID does not exist", http.StatusBadRequest)
 			log.Println(err)

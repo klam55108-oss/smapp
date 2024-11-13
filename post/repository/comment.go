@@ -19,9 +19,9 @@ func NewComment(db *sql.DB) *Comment {
 	return &Comment{db: db}
 }
 
-func (c *Comment) Create(ctx context.Context, postID, authorID, body string) (string, error) {
-	fail := func(err error) (string, error) {
-		return "", fmt.Errorf("add comment to db: %w", err)
+func (c *Comment) Create(ctx context.Context, postID, authorID uuid.UUID, body string) (uuid.UUID, error) {
+	fail := func(err error) (uuid.UUID, error) {
+		return uuid.Nil, fmt.Errorf("add comment to db: %w", err)
 	}
 
 	tx, err := c.db.BeginTx(ctx, nil)
@@ -34,23 +34,15 @@ func (c *Comment) Create(ctx context.Context, postID, authorID, body string) (st
 	if err != nil {
 		return fail(err)
 	}
-	postUUID, err := uuid.Parse(postID)
-	if err != nil {
-		return fail(err)
-	}
-	authorUUID, err := uuid.Parse(authorID)
-	if err != nil {
-		return fail(err)
-	}
 
 	_, err = tx.ExecContext(
 		ctx,
 		"INSERT INTO comments (id, post_id, author_id, body) VALUES (?, ?, ?, ?)",
-		id[:], postUUID[:], authorUUID[:], body,
+		id[:], postID[:], authorID[:], body,
 	)
 	var mysqlError *mysql.MySQLError
 	if errors.As(err, &mysqlError) && mysqlError.Number == 1452 {
-		return "", ErrPostIDNotFound
+		return uuid.Nil, ErrPostIDNotFound
 	}
 	if err != nil {
 		return fail(changeErrIfCtxDone(ctx, err))
@@ -63,7 +55,7 @@ func (c *Comment) Create(ctx context.Context, postID, authorID, body string) (st
 	_, err = tx.ExecContext(
 		ctx,
 		"INSERT INTO comments_count (id, post_id, count) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE count = count + 1",
-		countID[:], postUUID[:],
+		countID[:], postID[:],
 	)
 	if err != nil {
 		return fail(changeErrIfCtxDone(ctx, err))
@@ -72,24 +64,19 @@ func (c *Comment) Create(ctx context.Context, postID, authorID, body string) (st
 	if err = tx.Commit(); err != nil {
 		return fail(changeErrIfCtxDone(ctx, err))
 	}
-	return id.String(), nil
+	return id, nil
 }
 
-func (c *Comment) CheckExists(ctx context.Context, id string) error {
+func (c *Comment) CheckExists(ctx context.Context, id uuid.UUID) error {
 	fail := func(err error) error {
 		return fmt.Errorf("check if comment exists in db: %w", err)
 	}
 
-	commentUUID, err := uuid.Parse(id)
-	if err != nil {
-		return fail(err)
-	}
-
 	var exists bool
-	err = c.db.QueryRowContext(
+	err := c.db.QueryRowContext(
 		ctx,
 		"SELECT EXISTS(SELECT 1 FROM comments WHERE id = ?)",
-		commentUUID[:],
+		id[:],
 	).Scan(&exists)
 	if err != nil {
 		return fail(err)
@@ -100,19 +87,11 @@ func (c *Comment) CheckExists(ctx context.Context, id string) error {
 	return nil
 }
 
-func (c *Comment) GetPaginatedWithLikeCount(ctx context.Context, postID string, cursor model.Cursor, limit int) ([]model.Comment, *model.Cursor, error) {
+func (c *Comment) GetPaginatedWithLikeCount(ctx context.Context, postID uuid.UUID, cursor model.Cursor, limit int) ([]model.Comment, *model.Cursor, error) {
 	fail := func(err error) ([]model.Comment, *model.Cursor, error) {
 		return nil, nil, fmt.Errorf("get comments from db: %w", err)
 	}
 
-	postUUID, err := uuid.Parse(postID)
-	if err != nil {
-		return fail(err)
-	}
-	lastLoadedUUID, err := uuid.Parse(cursor.LastLoadedID)
-	if err != nil {
-		return fail(err)
-	}
 	query := `
 		SELECT c.id, c.author_id, c.body, c.created_at, IFNULL(lc.count, 0) 
 		FROM comments c 
@@ -124,8 +103,8 @@ func (c *Comment) GetPaginatedWithLikeCount(ctx context.Context, postID string, 
 	rows, err := c.db.QueryContext(
 		ctx,
 		query,
-		postUUID[:], cursor.LastLoadedTimestamp, cursor.LastLoadedTimestamp,
-		lastLoadedUUID[:], limit+1,
+		postID[:], cursor.LastLoadedTimestamp, cursor.LastLoadedTimestamp,
+		cursor.LastLoadedID[:], limit+1,
 	)
 	if err != nil {
 		return fail(err)
@@ -134,21 +113,10 @@ func (c *Comment) GetPaginatedWithLikeCount(ctx context.Context, postID string, 
 	comments := make([]model.Comment, 0)
 	for i := 0; i < limit && rows.Next(); i++ {
 		var comment model.Comment
-		var commentIDBytes, authorIDBytes []byte
 		var likeCount uint32
-		if err = rows.Scan(&commentIDBytes, &authorIDBytes, &comment.Body, &comment.CreatedAt, &likeCount); err != nil {
+		if err = rows.Scan(&comment.ID, &comment.AuthorID, &comment.Body, &comment.CreatedAt, &likeCount); err != nil {
 			return fail(err)
 		}
-		commentUUID, err := uuid.FromBytes(commentIDBytes)
-		if err != nil {
-			return fail(err)
-		}
-		comment.ID = commentUUID.String()
-		authorUUID, err := uuid.FromBytes(authorIDBytes)
-		if err != nil {
-			return fail(err)
-		}
-		comment.AuthorID = authorUUID.String()
 		comment.PostID = postID
 		comment.LikeCount = &likeCount
 		comments = append(comments, comment)
@@ -167,21 +135,16 @@ func (c *Comment) GetPaginatedWithLikeCount(ctx context.Context, postID string, 
 	return comments, nextCursor, nil
 }
 
-func (c *Comment) GetCount(ctx context.Context, postID string) (uint32, error) {
+func (c *Comment) GetCount(ctx context.Context, postID uuid.UUID) (uint32, error) {
 	fail := func(err error) (uint32, error) {
 		return 0, fmt.Errorf("get comment count from db: %w", err)
 	}
 
-	postUUID, err := uuid.Parse(postID)
-	if err != nil {
-		return fail(err)
-	}
-
 	var count uint32
-	err = c.db.QueryRowContext(
+	err := c.db.QueryRowContext(
 		ctx,
 		"SELECT count FROM comments_count WHERE post_id = ?",
-		postUUID[:],
+		postID[:],
 	).Scan(&count)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, nil

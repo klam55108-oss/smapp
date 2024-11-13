@@ -19,9 +19,9 @@ func NewPost(db *sql.DB) *Post {
 	return &Post{db: db}
 }
 
-func (p *Post) Create(ctx context.Context, body, authorID string, images []model.ImageLocation) (string, error) {
-	fail := func(err error) (string, error) {
-		return "", fmt.Errorf("add post to db: %w", err)
+func (p *Post) Create(ctx context.Context, body string, authorID uuid.UUID, images []model.ImageLocation) (uuid.UUID, error) {
+	fail := func(err error) (uuid.UUID, error) {
+		return uuid.Nil, fmt.Errorf("add post to db: %w", err)
 	}
 
 	tx, err := p.db.BeginTx(ctx, nil)
@@ -34,14 +34,10 @@ func (p *Post) Create(ctx context.Context, body, authorID string, images []model
 	if err != nil {
 		return fail(err)
 	}
-	authorUUID, err := uuid.Parse(authorID)
-	if err != nil {
-		return fail(err)
-	}
 	_, err = tx.ExecContext(
 		ctx,
 		"INSERT INTO posts (id, body, author_id) VALUES (?, ?, ?)",
-		id[:], body, authorUUID[:],
+		id[:], body, authorID[:],
 	)
 	if err != nil {
 		return fail(changeErrIfCtxDone(ctx, err))
@@ -64,24 +60,19 @@ func (p *Post) Create(ctx context.Context, body, authorID string, images []model
 	if err = tx.Commit(); err != nil {
 		return fail(changeErrIfCtxDone(ctx, err))
 	}
-	return id.String(), nil
+	return id, nil
 }
 
-func (p *Post) CheckExists(ctx context.Context, id string) error {
+func (p *Post) CheckExists(ctx context.Context, id uuid.UUID) error {
 	fail := func(err error) error {
 		return fmt.Errorf("check if post exists in db: %w", err)
 	}
 
-	postUUID, err := uuid.Parse(id)
-	if err != nil {
-		return fail(err)
-	}
-
 	var exists bool
-	err = p.db.QueryRowContext(
+	err := p.db.QueryRowContext(
 		ctx,
 		"SELECT EXISTS(SELECT 1 FROM posts WHERE id = ?)",
-		postUUID[:],
+		id[:],
 	).Scan(&exists)
 	if err != nil {
 		return fail(err)
@@ -92,14 +83,14 @@ func (p *Post) CheckExists(ctx context.Context, id string) error {
 	return nil
 }
 
-func (p *Post) getImagesByPostID(ctx context.Context, postUUID uuid.UUID) ([]model.ImageLocation, error) {
+func (p *Post) getImagesByPostID(ctx context.Context, postID uuid.UUID) ([]model.ImageLocation, error) {
 	fail := func(err error) ([]model.ImageLocation, error) {
 		return nil, fmt.Errorf("get images by post id from db: %w", err)
 	}
 	rows, err := p.db.QueryContext(
 		ctx,
 		"SELECT s3_bucket, s3_key FROM images WHERE post_id = ? ORDER BY position",
-		postUUID[:],
+		postID[:],
 	)
 	if err != nil {
 		return fail(err)
@@ -119,25 +110,18 @@ func (p *Post) getImagesByPostID(ctx context.Context, postUUID uuid.UUID) ([]mod
 	return images, nil
 }
 
-func (p *Post) Get(ctx context.Context, id string) (model.Post, error) {
+func (p *Post) Get(ctx context.Context, id uuid.UUID) (model.Post, error) {
 	fail := func(err error) (model.Post, error) {
 		return model.Post{}, fmt.Errorf("get post from db: %w", err)
 	}
 
-	postUUID, err := uuid.Parse(id)
-	if err != nil {
-		return fail(err)
-	}
-
 	var post model.Post
 	post.ID = id
-
-	var authorIDBytes []byte
-	err = p.db.QueryRowContext(
+	err := p.db.QueryRowContext(
 		ctx,
 		"SELECT author_id, body, created_at FROM posts WHERE id = ?",
-		postUUID[:],
-	).Scan(&authorIDBytes, &post.Body, &post.CreatedAt)
+		id[:],
+	).Scan(&post.AuthorID, &post.Body, &post.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return model.Post{}, ErrRecordNotFound
 	}
@@ -145,13 +129,7 @@ func (p *Post) Get(ctx context.Context, id string) (model.Post, error) {
 		return fail(err)
 	}
 
-	authorUUID, err := uuid.FromBytes(authorIDBytes)
-	if err != nil {
-		return fail(err)
-	}
-	post.AuthorID = authorUUID.String()
-
-	post.Images, err = p.getImagesByPostID(ctx, postUUID)
+	post.Images, err = p.getImagesByPostID(ctx, id)
 	if err != nil {
 		return fail(err)
 	}
@@ -160,24 +138,15 @@ func (p *Post) Get(ctx context.Context, id string) (model.Post, error) {
 }
 
 func (p *Post) GetWithCountsByUserIDs(
-	ctx context.Context, userIDs []string, cursor model.Cursor, limit int,
+	ctx context.Context, userIDs []uuid.UUID, cursor model.Cursor, limit int,
 ) ([]model.Post, *model.Cursor, error) {
 	fail := func(err error) ([]model.Post, *model.Cursor, error) {
 		return nil, nil, fmt.Errorf("get posts by user ids from db: %w", err)
 	}
 
-	hexUUIDs := make([]string, len(userIDs))
+	hexUserIDs := make([]string, len(userIDs))
 	for i, userID := range userIDs {
-		userUUID, err := uuid.Parse(userID)
-		if err != nil {
-			return fail(err)
-		}
-		hexUUIDs[i] = fmt.Sprintf("X'%x'", userUUID[:])
-	}
-
-	lastLoadedUUID, err := uuid.Parse(cursor.LastLoadedID)
-	if err != nil {
-		return fail(err)
+		hexUserIDs[i] = fmt.Sprintf("X'%x'", userID[:])
 	}
 
 	query := fmt.Sprintf(`
@@ -188,10 +157,10 @@ func (p *Post) GetWithCountsByUserIDs(
 		WHERE p.author_id IN (%s) AND (p.created_at < ? OR (p.created_at = ? AND p.id > ?)) 
 		ORDER BY p.created_at DESC, p.id 
 		LIMIT ? 
-	`, strings.Join(hexUUIDs, ","))
+	`, strings.Join(hexUserIDs, ","))
 	rows, err := p.db.QueryContext(
 		ctx, query,
-		cursor.LastLoadedTimestamp, cursor.LastLoadedTimestamp, lastLoadedUUID[:], limit+1,
+		cursor.LastLoadedTimestamp, cursor.LastLoadedTimestamp, cursor.LastLoadedID[:], limit+1,
 	)
 	if err != nil {
 		return fail(err)
@@ -201,24 +170,13 @@ func (p *Post) GetWithCountsByUserIDs(
 	posts := make([]model.Post, 0)
 	for i := 0; i < limit && rows.Next(); i++ {
 		var post model.Post
-		var postIDBytes, authorIDBytes []byte
 		var commentCount, likeCount uint32
-		if err = rows.Scan(&postIDBytes, &authorIDBytes, &post.Body, &post.CreatedAt, &commentCount, &likeCount); err != nil {
+		if err = rows.Scan(&post.ID, &post.AuthorID, &post.Body, &post.CreatedAt, &commentCount, &likeCount); err != nil {
 			return fail(err)
 		}
-		postUUID, err := uuid.FromBytes(postIDBytes)
-		if err != nil {
-			return fail(err)
-		}
-		post.ID = postUUID.String()
-		authorUUID, err := uuid.FromBytes(authorIDBytes)
-		if err != nil {
-			return fail(err)
-		}
-		post.AuthorID = authorUUID.String()
 		post.CommentCount = &commentCount
 		post.LikeCount = &likeCount
-		post.Images, err = p.getImagesByPostID(ctx, postUUID)
+		post.Images, err = p.getImagesByPostID(ctx, post.ID)
 		if err != nil {
 			return fail(err)
 		}

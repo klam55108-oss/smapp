@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 type JWT struct {
@@ -20,16 +21,16 @@ func NewJWT(secret []byte, ttl time.Duration) *JWT {
 	}
 }
 
-func (svc *JWT) GenerateJWT(userID string) (string, error) {
+func (svc *JWT) GenerateJWT(userID uuid.UUID) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": userID,
+		"sub": userID.String(),
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(svc.ttl).Unix(),
 	})
 	return token.SignedString(svc.secret)
 }
 
-func (svc *JWT) ParseJWT(tokenString string) (string, error) {
+func (svc *JWT) ParseJWT(tokenString string) (uuid.UUID, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -37,13 +38,17 @@ func (svc *JWT) ParseJWT(tokenString string) (string, error) {
 		return svc.secret, nil
 	})
 	if err != nil {
-		return "", err
+		return uuid.Nil, err
 	}
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		if sub, ok := claims["sub"].(string); ok {
-			return sub, nil
+			userID, err := uuid.Parse(sub)
+			if err != nil {
+				return uuid.Nil, fmt.Errorf("parse sub claim: %w", err)
+			}
+			return userID, nil
 		}
-		return "", errors.New("expected sub claim to be present and to be a string")
+		return uuid.Nil, errors.New("expected sub claim to be present and to be a string")
 	}
-	return "", errors.New("expected claims to be jwt.MapClaims")
+	return uuid.Nil, errors.New("expected claims to be jwt.MapClaims")
 }

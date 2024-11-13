@@ -7,6 +7,8 @@ import (
 	"smapp/post/config"
 	"smapp/post/model"
 	"smapp/post/repository"
+
+	"github.com/google/uuid"
 )
 
 type Comment struct {
@@ -21,14 +23,14 @@ func NewComment(commentRepository *repository.Comment, postRepository *repositor
 	}
 }
 
-func (svc *Comment) Create(ctx context.Context, postID, authorID, body string) (string, error) {
-	fail := func(err error) (string, error) {
-		return "", fmt.Errorf("create comment: %w", err)
+func (svc *Comment) Create(ctx context.Context, postID, authorID uuid.UUID, body string) (uuid.UUID, error) {
+	fail := func(err error) (uuid.UUID, error) {
+		return uuid.Nil, fmt.Errorf("create comment: %w", err)
 	}
 
 	id, err := svc.commentRepository.Create(ctx, postID, authorID, body)
 	if errors.Is(err, repository.ErrPostIDNotFound) {
-		return "", fmt.Errorf("%w: %s", ErrPostNotFound, postID)
+		return uuid.Nil, fmt.Errorf("%w: %s", ErrPostNotFound, postID)
 	}
 	if err != nil {
 		return fail(err)
@@ -40,7 +42,7 @@ func (svc *Comment) Create(ctx context.Context, postID, authorID, body string) (
 var ErrCommentsPaginationLimitInvalid = errors.New("comments pagination limit invalid")
 
 func (svc *Comment) GetPaginatedWithLikeCount(
-	ctx context.Context, postID string, cursor model.Cursor, limit int,
+	ctx context.Context, postID uuid.UUID, cursor model.Cursor, limit int,
 ) ([]model.Comment, *model.Cursor, error) {
 	fail := func(err error) ([]model.Comment, *model.Cursor, error) {
 		return nil, nil, fmt.Errorf("get comments: %w", err)

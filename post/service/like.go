@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"smapp/post/repository"
+
+	"github.com/google/uuid"
 )
 
 type entityRepository interface {
-	CheckExists(ctx context.Context, entityID string) error
+	CheckExists(ctx context.Context, entityID uuid.UUID) error
 }
 
 type Like struct {
@@ -35,7 +37,7 @@ func NewCommentLike(likeRepository *repository.Like, commentRepository *reposito
 
 var ErrLikeExists = errors.New("like already exists")
 
-func (svc Like) Create(ctx context.Context, entityID, authorID string) error {
+func (svc Like) Create(ctx context.Context, entityID, authorID uuid.UUID) error {
 	fail := func(err error) error {
 		return fmt.Errorf("create like: %w", err)
 	}

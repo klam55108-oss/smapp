@@ -13,6 +13,7 @@ import (
 	"smapp/user/service"
 	"time"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
 )
 
@@ -47,11 +48,19 @@ type userServer struct {
 }
 
 func (s *userServer) GetFollowed(ctx context.Context, req *pb.GetFollowedRequest) (*pb.GetFollowedResponse, error) {
-	userIDs, err := s.followService.GetFollowed(ctx, req.UserId)
+	userID, err := uuid.FromBytes(req.UserId)
 	if err != nil {
 		return nil, err
 	}
-	return &pb.GetFollowedResponse{UserIds: userIDs}, nil
+	followed, err := s.followService.GetFollowed(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	followedBytes := make([][]byte, len(followed))
+	for i, id := range followed {
+		followedBytes[i] = id[:]
+	}
+	return &pb.GetFollowedResponse{UserIds: followedBytes}, nil
 }
 
 func main() {

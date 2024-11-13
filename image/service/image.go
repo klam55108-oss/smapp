@@ -27,7 +27,7 @@ func NewGenerateUploadForm(creds *aws.Credentials, policyTTL time.Duration, buck
 	}
 }
 
-func (svc *GenerateUploadForm) GetForm(ctx context.Context, imgPurpose, userID string, contentLengthLimit int64) (map[string]interface{}, error) {
+func (svc *GenerateUploadForm) GetForm(ctx context.Context, imgPurpose string, userID uuid.UUID, contentLengthLimit int64) (map[string]interface{}, error) {
 	fail := func(err error) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("get upload form: %w", err)
 	}

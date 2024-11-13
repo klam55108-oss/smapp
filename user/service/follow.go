@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"smapp/user/repository"
+
+	"github.com/google/uuid"
 )
 
 type Follow struct {
@@ -22,7 +24,7 @@ var (
 	ErrFollowExists = errors.New("follow already exists")
 )
 
-func (svc *Follow) Create(ctx context.Context, followerID, followedID string) error {
+func (svc *Follow) Create(ctx context.Context, followerID, followedID uuid.UUID) error {
 	fail := func(err error) error {
 		return fmt.Errorf("create follow: %w", err)
 	}
@@ -42,8 +44,8 @@ func (svc *Follow) Create(ctx context.Context, followerID, followedID string) er
 	return nil
 }
 
-func (svc *Follow) GetFollowed(ctx context.Context, userID string) ([]string, error) {
-	fail := func(err error) ([]string, error) {
+func (svc *Follow) GetFollowed(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
+	fail := func(err error) ([]uuid.UUID, error) {
 		return nil, fmt.Errorf("get followed: %w", err)
 	}
 	followed, err := svc.followRepository.GetFollowed(ctx, userID)

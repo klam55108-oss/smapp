@@ -10,6 +10,8 @@ import (
 
 	imagePB "smapp/common/grpc/image"
 	userPB "smapp/common/grpc/user"
+
+	"github.com/google/uuid"
 )
 
 type Post struct {
@@ -36,10 +38,10 @@ func NewPost(
 var ErrInvalidImage = fmt.Errorf("image does not exist or not accessible")
 
 func (svc *Post) Create(
-	ctx context.Context, body string, authorID string, images []model.ImageLocation,
-) (string, error) {
-	fail := func(err error) (string, error) {
-		return "", fmt.Errorf("create post: %w", err)
+	ctx context.Context, body string, authorID uuid.UUID, images []model.ImageLocation,
+) (uuid.UUID, error) {
+	fail := func(err error) (uuid.UUID, error) {
+		return uuid.Nil, fmt.Errorf("create post: %w", err)
 	}
 
 	for _, image := range images {
@@ -49,7 +51,7 @@ func (svc *Post) Create(
 		})
 
 		if err != nil {
-			return "", fmt.Errorf("%w: %w", ErrInvalidImage, err)
+			return uuid.Nil, fmt.Errorf("%w: %w", ErrInvalidImage, err)
 		}
 	}
 
@@ -64,7 +66,7 @@ func (svc *Post) Create(
 }
 
 // TODO: implement WithLikeCount/WithCommentCount options
-func (svc *Post) GetWithCounts(ctx context.Context, id string) (model.Post, error) {
+func (svc *Post) GetWithCounts(ctx context.Context, id uuid.UUID) (model.Post, error) {
 	fail := func(err error) (model.Post, error) {
 		return model.Post{}, fmt.Errorf("get post: %w", err)
 	}
@@ -95,7 +97,7 @@ func (svc *Post) GetWithCounts(ctx context.Context, id string) (model.Post, erro
 var ErrPostsPaginationLimitInvalid = errors.New("posts pagination limit invalid")
 
 func (svc *Post) GetFeed(
-	ctx context.Context, authorID string, cursor model.Cursor, limit int,
+	ctx context.Context, authorID uuid.UUID, cursor model.Cursor, limit int,
 ) ([]model.Post, *model.Cursor, error) {
 	fail := func(err error) ([]model.Post, *model.Cursor, error) {
 		return nil, nil, fmt.Errorf("get feed: %w", err)
@@ -108,13 +110,19 @@ func (svc *Post) GetFeed(
 		)
 	}
 
-	followed, err := svc.userClient.GetFollowed(ctx, &userPB.GetFollowedRequest{UserId: authorID})
+	followed, err := svc.userClient.GetFollowed(ctx, &userPB.GetFollowedRequest{UserId: authorID[:]})
 	if err != nil {
 		return fail(err)
 	}
-	userIDs := followed.UserIds
-	if len(userIDs) == 0 {
+	if len(followed.UserIds) == 0 {
 		return []model.Post{}, nil, nil
+	}
+	userIDs := make([]uuid.UUID, len(followed.UserIds))
+	for i, userID := range followed.UserIds {
+		userIDs[i], err = uuid.FromBytes(userID)
+		if err != nil {
+			return fail(err)
+		}
 	}
 
 	posts, nextCursor, err := svc.postRepository.GetWithCountsByUserIDs(ctx, userIDs, cursor, limit)
