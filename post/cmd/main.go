@@ -132,7 +132,7 @@ func main() {
 	r.Use(commonmw.WithRequestContextTimeout(defaultTimeout))
 
 	srv := &http.Server{
-		Addr:        ":8082",
+		Addr:        ":8080",
 		Handler:     r,
 		ReadTimeout: defaultTimeout,
 	}

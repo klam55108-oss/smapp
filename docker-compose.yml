@@ -1,10 +1,25 @@
 services:
+  traefik:
+    image: traefik:3.2.0
+    command:
+      - --api.insecure=true  # FIXME
+      - --providers.docker=true
+      - --providers.docker.exposedByDefault=false
+      - --providers.file.directory=/app/config/traefik_common
+      - --entrypoints.web.address=:80
+      - --log.level=DEBUG
+      - --accesslog=true
+    ports:
+      - 80:80
+      - 127.0.0.1:8080:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik_common:/app/config/traefik_common
+
   user:
     build:
       context: .
       dockerfile: user/Dockerfile.http
-    ports:
-      - 127.0.0.1:8081:8081
     depends_on:
       - user_db
     env_file:
@@ -12,6 +27,13 @@ services:
     secrets:
       - mysql_password
       - jwt_secret
+    labels:
+      traefik.enable: "true"
+      traefik.http.services.user.loadbalancer.server.port: 8080
+
+      traefik.http.routers.user.rule: Path(`/api/signup`) || Path(`/api/login`) || PathPrefix(`/api/users`)
+      traefik.http.routers.user.middlewares: strip-api-prefix@file
+      traefik.http.routers.user.service: user
   
   user_grpc:
     build:
@@ -47,14 +69,19 @@ services:
     build:
       context: .
       dockerfile: post/Dockerfile
-    ports:
-      - 127.0.0.1:8082:8082
     depends_on:
       - post_db
     env_file:
       - post/.env
     secrets:
       - mysql_password
+    labels:
+      traefik.enable: "true"
+      traefik.http.services.post.loadbalancer.server.port: 8080
+
+      traefik.http.routers.post.rule: PathPrefix(`/api/posts`) || PathPrefix(`/api/comments`) || Path(`/api/feed`)
+      traefik.http.routers.post.middlewares: strip-api-prefix@file
+      traefik.http.routers.post.service: post
 
   post_db:
     image: mysql:8.0
@@ -79,10 +106,15 @@ services:
     build:
       context: .
       dockerfile: image/Dockerfile.http
-    ports:
-      - 127.0.0.1:8085:8085
     env_file:
       - image/.env
+    labels:
+      traefik.enable: "true"
+      traefik.http.services.image.loadbalancer.server.port: 8080
+
+      traefik.http.routers.image.rule: PathPrefix(`/api/upload-form`)
+      traefik.http.routers.image.middlewares: strip-api-prefix@file
+      traefik.http.routers.image.service: image
   
   image_grpc:
     build:

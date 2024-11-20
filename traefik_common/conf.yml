@@ -1,0 +1,8 @@
+# For most of the Traefik definitions Docker/Swarm provider is used. The file provider contains common definitions used by multiple services (like middleware).
+
+http:
+  middlewares:
+    strip-api-prefix:
+      stripPrefix:
+        prefixes: /api
+

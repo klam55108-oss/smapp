@@ -11,5 +11,5 @@ RUN go build -o main cmd/main.go
 FROM alpine:3.20
 WORKDIR /app/post
 COPY --from=builder /app/post/main .
-EXPOSE 8082
+EXPOSE 8080
 CMD [ "./main"]
