@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
+	"crypto/rsa"
+	"crypto/x509"
 	"database/sql"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -28,8 +32,8 @@ type mysqlConfig struct {
 }
 
 type jwtConfig struct {
-	secret []byte
-	ttl    time.Duration
+	privateKey *rsa.PrivateKey
+	ttl        time.Duration
 }
 
 func getMysqlConfig() (*mysqlConfig, error) {
@@ -53,9 +57,23 @@ func getMysqlConfig() (*mysqlConfig, error) {
 func getJWTConfig() (*jwtConfig, error) {
 	jwtConfig := jwtConfig{}
 	var err error
-	if jwtConfig.secret, err = commonenv.GetSecret("jwt_secret"); err != nil {
+	privateKeyData, err := commonenv.GetSecret("jwt_private_key")
+	if err != nil {
 		return nil, err
 	}
+	block, _ := pem.Decode(privateKeyData)
+	if block == nil || block.Type != "PRIVATE KEY" {
+		return nil, errors.New("failed to decode PEM block containing private key")
+	}
+	privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	var ok bool
+	if jwtConfig.privateKey, ok = privateKey.(*rsa.PrivateKey); !ok {
+		return nil, errors.New("private key is not RSA")
+	}
+
 	if jwtConfig.ttl, err = commonenv.GetEnvDuration("JWT_TTL"); err != nil {
 		return nil, err
 	}
@@ -94,7 +112,7 @@ func main() {
 	userRepository := repository.NewUser(db)
 	followRepository := repository.NewFollow(db)
 
-	jwtService := service.NewJWT(jwtConfig.secret, jwtConfig.ttl)
+	jwtService := service.NewJWT(jwtConfig.privateKey, jwtConfig.ttl)
 	userService := service.NewUser(userRepository, jwtService)
 	followService := service.NewFollow(followRepository)
 

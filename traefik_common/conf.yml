@@ -6,3 +6,25 @@ http:
       stripPrefix:
         prefixes: /api
 
+    jwt-auth-remove-header:
+      headers:
+        customRequestHeaders:
+          X-User-Id: ""
+
+    jwt-auth-append-header:
+      plugin:
+        jwt:
+          Alg: RS256
+          PayloadFields:
+            - sub
+            - exp
+          Keys:
+            - "{{ env "JWT_PUBLIC_KEY" | replace "\n" "\\n" }}"
+          JwtHeaders:
+            X-User-Id: sub
+
+    jwt-auth:
+      chain:
+        middlewares:
+          - jwt-auth-remove-header
+          - jwt-auth-append-header

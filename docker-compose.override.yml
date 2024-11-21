@@ -46,6 +46,6 @@ services:
 secrets:
   mysql_password:
     file: secrets/mysql_password.txt
-  jwt_secret:
-    file: secrets/jwt_secret.txt
+  jwt_private_key:
+    file: secrets/jwt_private_key.pem
   
