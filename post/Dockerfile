@@ -6,7 +6,9 @@ COPY common/go.mod common/go.su[m] ../common/
 RUN go mod download
 COPY common/. ../common
 COPY post/. .
-RUN go build -o main cmd/main.go
+ARG TARGETOS
+ARG TARGETARCH
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o main cmd/main.go
 
 FROM alpine:3.20
 WORKDIR /app/post

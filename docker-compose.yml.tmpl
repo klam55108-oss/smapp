@@ -39,6 +39,11 @@ x-image-labels: &image-labels
   traefik.http.routers.image-auth.middlewares: strip-api-prefix@file,jwt-auth@file
   traefik.http.routers.image-auth.service: image
 
+x-platforms: &platforms
+  platforms:
+    - linux/amd64
+    - linux/arm64
+
 services:
   traefik:
     image: traefik:3.2.0
@@ -69,6 +74,7 @@ services:
     build:
       context: .
       dockerfile: user/Dockerfile.http
+      <<: *platforms
     image: ${REGISTRY}/user
     depends_on:
       - user_db
@@ -90,6 +96,7 @@ services:
     build:
       context: .
       dockerfile: user/Dockerfile.grpc
+      <<: *platforms
     image: ${REGISTRY}/user_grpc
     depends_on:
       - user_db
@@ -121,6 +128,7 @@ services:
     build:
       context: .
       dockerfile: post/Dockerfile
+      <<: *platforms
     image: ${REGISTRY}/post
     depends_on:
       - post_db
@@ -160,6 +168,7 @@ services:
     build:
       context: .
       dockerfile: image/Dockerfile.http
+      <<: *platforms
     image: ${REGISTRY}/image
     env_file:
       - image/.env
@@ -176,6 +185,7 @@ services:
     build:
       context: .
       dockerfile: image/Dockerfile.grpc
+      <<: *platforms
     image: ${REGISTRY}/image_grpc
     env_file:
       - image/.env
