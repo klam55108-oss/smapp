@@ -1,5 +1,5 @@
 /secrets/
 .DS_Store
 *.pb.go
-.env
+*.env
 docker-compose.yml

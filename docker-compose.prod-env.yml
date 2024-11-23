@@ -1,0 +1,39 @@
+# Contains environment variables for production. These environment variables would typically be stored in .env file in development. Sensitive information is stored in Docker Swarm secrets.
+
+x-user-env: &user-env
+  MYSQL_HOST: user_db
+  MYSQL_USER: root
+  MYSQL_DB: user_db
+  JWT_TTL: 24h
+  DEFAULT_TIMEOUT: 5s
+
+x-post-env: &post-env
+  MYSQL_HOST: post_db
+  MYSQL_USER: root
+  MYSQL_DB: post_db
+  DEFAULT_TIMEOUT: 5s
+
+x-image-env: &image-env
+  DEFAULT_TIMEOUT: 5s
+  PROFILE_IMG_LIMIT: 5242880
+  POST_IMG_LIMIT: 52428800
+  POLICY_TTL: 10m
+  S3_BUCKET: smapp-dev-bucket
+  S3_REGION: eu-north-1
+
+services:
+  user:
+    environment:
+      <<: *user-env
+  user_grpc:
+    environment:
+      <<: *user-env
+  post:
+    environment:
+      <<: *post-env
+  image:
+    environment:
+      <<: *image-env
+  image_grpc:
+    environment:
+      <<: *image-env
