@@ -1,4 +1,7 @@
+{{/* If DEPLOY is non-empty, run with Docker Swarm, otherwise Docker Compose */ -}}
 {{ $deploy := ne (getenv "DEPLOY") "" -}}
+{{/* Set LOCAL when debugging on local machine. */ -}}
+{{ $local := ne (getenv "LOCAL") "" -}}
 {{ $provider := ternary "swarm" "docker" $deploy -}}
 
 x-user-labels: &user-labels
@@ -40,16 +43,20 @@ x-image-labels: &image-labels
   traefik.http.routers.image-auth.service: image
 
 x-platforms: &platforms
+  {{- if $local }}
+  {}
+  {{- else }}
   platforms:
     - linux/amd64
     - linux/arm64
+  {{- end }}
 
 services:
   traefik:
     image: traefik:3.2.0
     command:
-      {{- if not $deploy }}
-      - --api.insecure=true  # FIXME
+      {{- if $local }}
+      - --api.insecure=true
       {{- end }}
       - --providers.{{ $provider }}=true
       - --providers.{{ $provider }}.exposedByDefault=false
@@ -63,7 +70,7 @@ services:
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
     ports:
       - 80:80
-      {{- if not $deploy }}
+      {{- if $local }}
       - 127.0.0.1:8080:8080
       {{- end }}
     volumes:
@@ -78,8 +85,10 @@ services:
     image: ${REGISTRY}/user
     depends_on:
       - user_db
+    {{- if not $deploy }}
     env_file:
       - user/.env
+    {{- end }}
     secrets:
       - mysql_password
       - jwt_private_key
@@ -100,8 +109,10 @@ services:
     image: ${REGISTRY}/user_grpc
     depends_on:
       - user_db
+    {{- if not $deploy }}
     env_file:
       - user/.env
+    {{- end }}
     secrets:
       - mysql_password
 
@@ -132,8 +143,10 @@ services:
     image: ${REGISTRY}/post
     depends_on:
       - post_db
+    {{- if not $deploy }}
     env_file:
       - post/.env
+    {{- end }}
     secrets:
       - mysql_password
     {{- if $deploy }}
@@ -170,8 +183,10 @@ services:
       dockerfile: image/Dockerfile.http
       <<: *platforms
     image: ${REGISTRY}/image
+    {{- if not $deploy }}
     env_file:
       - image/.env
+    {{- end }}
     {{- if $deploy }}
     deploy:
       labels:
@@ -180,6 +195,11 @@ services:
     labels:
       <<: *image-labels
     {{- end }}
+    {{- /* When running locally, use IAM user. When running on EC2, IAM role should be attached. */}}
+    {{- if $local }}
+    volumes:
+      - ~/.aws:/root/.aws
+    {{- end }}
   
   image_grpc:
     build:
@@ -187,8 +207,15 @@ services:
       dockerfile: image/Dockerfile.grpc
       <<: *platforms
     image: ${REGISTRY}/image_grpc
+    {{- if not $deploy }}
     env_file:
       - image/.env
+    {{- end }}
+    {{- /* When running locally, use IAM user. When running on EC2, IAM role should be attached. */}}
+    {{- if $local }}
+    volumes:
+      - ~/.aws:/root/.aws
+    {{- end }}
 
 {{- if $deploy }}
 
