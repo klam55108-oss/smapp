@@ -50,9 +50,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if creds.CanExpire {
-		log.Fatal("credentials must not expire")
-	}
 
 	generateUploadFormService := service.NewGenerateUploadForm(&creds, policyTTL, bucket, region)
 
