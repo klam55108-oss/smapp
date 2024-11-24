@@ -47,9 +47,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	region, err := commonenv.GetEnv("S3_REGION")
+	if err != nil {
+		log.Fatal(err)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	cfg, err := config.LoadDefaultConfig(ctx)
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
 		log.Fatal(err)
 	}
