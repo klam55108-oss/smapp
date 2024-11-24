@@ -80,7 +80,7 @@ services:
   user:
     build:
       context: .
-      dockerfile: user/Dockerfile.http
+      dockerfile: user/cmd/http/Dockerfile
       <<: *platforms
     image: ${REGISTRY}/user
     depends_on:
@@ -104,7 +104,7 @@ services:
   user_grpc:
     build:
       context: .
-      dockerfile: user/Dockerfile.grpc
+      dockerfile: user/cmd/grpc/Dockerfile
       <<: *platforms
     image: ${REGISTRY}/user_grpc
     depends_on:
@@ -138,7 +138,7 @@ services:
   post:
     build:
       context: .
-      dockerfile: post/Dockerfile
+      dockerfile: post/cmd/Dockerfile
       <<: *platforms
     image: ${REGISTRY}/post
     depends_on:
@@ -180,7 +180,7 @@ services:
   image:
     build:
       context: .
-      dockerfile: image/Dockerfile.http
+      dockerfile: image/cmd/http/Dockerfile
       <<: *platforms
     image: ${REGISTRY}/image
     {{- if not $deploy }}
@@ -204,7 +204,7 @@ services:
   image_grpc:
     build:
       context: .
-      dockerfile: image/Dockerfile.grpc
+      dockerfile: image/cmd/grpc/Dockerfile
       <<: *platforms
     image: ${REGISTRY}/image_grpc
     {{- if not $deploy }}
