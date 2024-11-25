@@ -53,21 +53,23 @@ x-platforms: &platforms
 
 services:
   traefik:
-    image: traefik:3.2.0
+    # Build from Dockerfile rather than using "traefik" image. This way a local plugin can be pulled.
+    build:
+      context: .
+      dockerfile: traefik/Dockerfile
+      <<: *platforms
+    image: ${REGISTRY}/traefik
     command:
       {{- if $local }}
       - --api.insecure=true
       {{- end }}
       - --providers.{{ $provider }}=true
       - --providers.{{ $provider }}.exposedByDefault=false
-      - --providers.file.directory=/app/config/traefik_common
+      - --providers.file.directory=/app/config/common
       - --entrypoints.web.address=:80
-      - --experimental.plugins.jwt.moduleName=github.com/traefik-plugins/traefik-jwt-plugin
-      - --experimental.plugins.jwt.version=v0.9.0
+      - --experimental.localPlugins.jwt.moduleName=github.com/avoronoi/traefik-jwt-plugin
       - --log.level=DEBUG
       - --accesslog=true
-    environment:
-      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
     ports:
       - 80:80
       {{- if $local }}
@@ -75,7 +77,12 @@ services:
       {{- end }}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./traefik_common:/app/config/traefik_common
+      - ./traefik/common_conf:/app/config/common
+    {{- if $deploy }}
+    configs:
+      - source: jwt_public_key
+        target: /app/config/jwt_public_key.pem
+    {{- end }}
 
   user:
     build:
@@ -218,6 +225,10 @@ services:
     {{- end }}
 
 {{- if $deploy }}
+
+configs:
+  jwt_public_key:
+    external: true
 
 secrets:
   mysql_password:

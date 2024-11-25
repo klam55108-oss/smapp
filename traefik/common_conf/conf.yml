@@ -19,7 +19,7 @@ http:
             - sub
             - exp
           Keys:
-            - "{{ env "JWT_PUBLIC_KEY" | replace "\n" "\\n" }}"
+            - /app/config/jwt_public_key.pem
           JwtHeaders:
             X-User-Id: sub
 

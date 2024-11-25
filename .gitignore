@@ -3,3 +3,4 @@
 *.pb.go
 *.env
 docker-compose.yml
+*.pem

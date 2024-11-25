@@ -1,4 +1,8 @@
 services:
+  traefik:
+    volumes:
+      - ./jwt_public_key.pem:/app/config/jwt_public_key.pem
+
   user:
     develop:
       watch:
