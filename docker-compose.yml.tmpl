@@ -3,6 +3,7 @@
 {{/* Set LOCAL when debugging on local machine. */ -}}
 {{ $local := ne (getenv "LOCAL") "" -}}
 {{ $provider := ternary "swarm" "docker" $deploy -}}
+{{ $use_registry := ne (getenv "REGISTRY") "" -}}
 
 x-user-labels: &user-labels
   traefik.enable: "true"
@@ -58,7 +59,9 @@ services:
       context: .
       dockerfile: traefik/Dockerfile
       <<: *platforms
+    {{- if $use_registry }}
     image: ${REGISTRY}/traefik
+    {{- end }}
     command:
       {{- if $local }}
       - --api.insecure=true
@@ -97,7 +100,9 @@ services:
       context: .
       dockerfile: user/cmd/http/Dockerfile
       <<: *platforms
+    {{- if $use_registry }}
     image: ${REGISTRY}/user
+    {{- end }}
     depends_on:
       - user_db
     {{- if not $deploy }}
@@ -121,7 +126,9 @@ services:
       context: .
       dockerfile: user/cmd/grpc/Dockerfile
       <<: *platforms
+    {{- if $use_registry }}
     image: ${REGISTRY}/user_grpc
+    {{- end }}
     depends_on:
       - user_db
     {{- if not $deploy }}
@@ -155,7 +162,9 @@ services:
       context: .
       dockerfile: post/cmd/Dockerfile
       <<: *platforms
+    {{- if $use_registry }}
     image: ${REGISTRY}/post
+    {{- end }}
     depends_on:
       - post_db
     {{- if not $deploy }}
@@ -197,7 +206,9 @@ services:
       context: .
       dockerfile: image/cmd/http/Dockerfile
       <<: *platforms
+    {{- if $use_registry }}
     image: ${REGISTRY}/image
+    {{- end }}
     {{- if not $deploy }}
     env_file:
       - image/.env
@@ -221,7 +232,9 @@ services:
       context: .
       dockerfile: image/cmd/grpc/Dockerfile
       <<: *platforms
+    {{- if $use_registry }}
     image: ${REGISTRY}/image_grpc
+    {{- end }}
     {{- if not $deploy }}
     env_file:
       - image/.env
