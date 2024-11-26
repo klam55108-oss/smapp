@@ -25,6 +25,7 @@ cd smapp
 DEPLOY=1 gomplate -f docker-compose.yml.tmpl -o docker-compose.yml
 chmod +x deployment/init_swarm.sh
 chmod +x deployment/deploy.sh
+chmod +x deployment/set_gateway.sh
 
 sudo curl -Lo /usr/bin/docker-credential-ecr-login https://amazon-ecr-credential-helper-releases.s3.us-east-2.amazonaws.com/0.9.0/linux-amd64/docker-credential-ecr-login
 sudo chmod +x /usr/bin/docker-credential-ecr-login

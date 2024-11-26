@@ -68,10 +68,13 @@ services:
       - --providers.file.directory=/app/config/common
       - --entrypoints.web.address=:80
       - --experimental.localPlugins.jwt.moduleName=github.com/avoronoi/traefik-jwt-plugin
+      - --ping.entryPoint=web
       - --log.level=DEBUG
       - --accesslog=true
     ports:
-      - 80:80
+      - published: 80
+        target: 80
+        mode: host
       {{- if $local }}
       - 127.0.0.1:8080:8080
       {{- end }}
@@ -79,6 +82,11 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./traefik/common_conf:/app/config/common
     {{- if $deploy }}
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - node.labels.role == gateway
     configs:
       - source: jwt_public_key
         target: /app/config/jwt_public_key.pem
