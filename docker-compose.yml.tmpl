@@ -1,6 +1,6 @@
 {{/* If DEPLOY is non-empty, run with Docker Swarm, otherwise Docker Compose */ -}}
 {{ $deploy := ne (getenv "DEPLOY") "" -}}
-{{/* Set LOCAL when debugging on local machine. */ -}}
+{{/* Set LOCAL when running locally to avoid building images for multiple platforms and to bind AWS credentials directory. */ -}}
 {{ $local := ne (getenv "LOCAL") "" -}}
 {{ $provider := ternary "swarm" "docker" $deploy -}}
 {{ $use_registry := ne (getenv "REGISTRY") "" -}}
