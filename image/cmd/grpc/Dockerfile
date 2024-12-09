@@ -13,5 +13,5 @@ RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o main cmd/grpc/main.go
 FROM alpine:3.20
 WORKDIR /app/image
 COPY --from=builder /app/image/main .
-EXPOSE 50055
+EXPOSE 50051
 CMD [ "./main"]

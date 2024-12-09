@@ -87,7 +87,7 @@ func main() {
 	userClient := userPB.NewUserClient(conn)
 
 	conn, err = grpc.NewClient(
-		"image_grpc:50055",
+		"image_grpc:50051",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultServiceConfig(`{"loadBalancingConfig": [{"round_robin":{}}]}`),
 	)

@@ -61,7 +61,7 @@ func main() {
 	}
 	client := s3.NewFromConfig(cfg)
 
-	lis, err := net.Listen("tcp", ":50055")
+	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatal(err)
 	}
