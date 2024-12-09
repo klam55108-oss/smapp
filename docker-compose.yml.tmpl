@@ -129,7 +129,11 @@ services:
     {{- end }}
     depends_on:
       - user_db
-    {{- if not $deploy }}
+    {{- if $deploy }}
+    deploy:
+      # On DNS query, return all replicas' IPs, instead of a single virtual IP to use gRPC's load balancer.
+      endpoint_mode: dnsrr
+    {{- else }}
     env_file:
       - user/.env
     {{- end }}
@@ -229,7 +233,11 @@ services:
     {{- if $use_registry }}
     image: ${REGISTRY}/image_grpc
     {{- end }}
-    {{- if not $deploy }}
+    {{- if $deploy }}
+    deploy:
+      # On DNS query, return all replicas' IPs, instead of a single virtual IP to use gRPC's load balancer.
+      endpoint_mode: dnsrr
+    {{- else }}
     env_file:
       - image/.env
     {{- end }}

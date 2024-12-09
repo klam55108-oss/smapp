@@ -7,6 +7,7 @@ import (
 	"net"
 	commonenv "smapp/common/env"
 	pb "smapp/common/grpc/image"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -14,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 )
 
@@ -63,7 +65,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	grpcServer := grpc.NewServer()
+	// Set maximum connection age to periodically trigger DNS lookups in case replicas were added/removed.
+	grpcServer := grpc.NewServer(
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			MaxConnectionAge:      15 * time.Second,
+			MaxConnectionAgeGrace: 5 * time.Second,
+		}),
+	)
 	pb.RegisterImageServer(grpcServer, &imageServer{client: client})
 	log.Fatal(grpcServer.Serve(lis))
 }

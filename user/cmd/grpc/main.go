@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 type mysqlConfig struct {
@@ -90,7 +91,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	s := grpc.NewServer()
+	// Set maximum connection age to periodically trigger DNS lookups in case replicas were added/removed.
+	s := grpc.NewServer(
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			MaxConnectionAge:      15 * time.Second,
+			MaxConnectionAgeGrace: 5 * time.Second,
+		}),
+	)
 	pb.RegisterUserServer(s, &userServer{followService: followService})
 	log.Fatal(s.Serve(lis))
 }
