@@ -11,6 +11,7 @@ import (
 	imagePB "smapp/common/grpc/image"
 	userPB "smapp/common/grpc/user"
 	commonmw "smapp/common/middleware"
+	"smapp/common/validation"
 	"smapp/post/handlers"
 	"smapp/post/repository"
 	"smapp/post/service"
@@ -102,7 +103,7 @@ func main() {
 	postLikeRepository := repository.NewPostLike(db)
 	commentLikeRepository := repository.NewCommentLike(db)
 
-	postService := service.NewPost(postRepository, commentRepository, postLikeRepository, userClient, imageClient)
+	postService := service.NewDefaultPost(postRepository, commentRepository, postLikeRepository, userClient, imageClient)
 	commentService := service.NewComment(commentRepository, postRepository)
 	postLikeService := service.NewPostLike(postLikeRepository, postRepository)
 	commentLikeService := service.NewCommentLike(commentLikeRepository, commentRepository)
@@ -110,7 +111,7 @@ func main() {
 	r := mux.NewRouter()
 	r.Handle(
 		"/posts",
-		commonmw.ParseUserID(handlers.CreatePost(postService)),
+		commonmw.ParseUserID(handlers.CreatePost(validation.DefaultValidator, postService)),
 	).Methods(http.MethodPost)
 	r.Handle(
 		"/posts/{post_id}",

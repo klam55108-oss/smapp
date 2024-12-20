@@ -15,7 +15,17 @@ import (
 	"github.com/google/uuid"
 )
 
-type Post struct {
+type Post interface {
+	Create(
+		ctx context.Context, body string, authorID uuid.UUID, images []model.ImageLocation,
+	) (uuid.UUID, error)
+	GetWithCounts(ctx context.Context, id uuid.UUID) (model.Post, error)
+	GetFeed(
+		ctx context.Context, authorID uuid.UUID, cursor model.Cursor, limit int,
+	) ([]model.Post, *model.Cursor, error)
+}
+
+type DefaultPost struct {
 	postRepository    *repository.Post
 	commentRepository *repository.Comment
 	likeRepository    *repository.Like
@@ -23,11 +33,11 @@ type Post struct {
 	imageClient       imagePB.ImageClient
 }
 
-func NewPost(
+func NewDefaultPost(
 	postRepository *repository.Post, commentRepository *repository.Comment, likeRepository *repository.Like,
 	userClient userPB.UserClient, imageClient imagePB.ImageClient,
-) *Post {
-	return &Post{
+) *DefaultPost {
+	return &DefaultPost{
 		postRepository:    postRepository,
 		commentRepository: commentRepository,
 		likeRepository:    likeRepository,
@@ -38,7 +48,7 @@ func NewPost(
 
 var ErrInvalidImage = fmt.Errorf("image invalid or inaccessible")
 
-func (svc *Post) Create(
+func (svc *DefaultPost) Create(
 	ctx context.Context, body string, authorID uuid.UUID, images []model.ImageLocation,
 ) (uuid.UUID, error) {
 	fail := func(err error) (uuid.UUID, error) {
@@ -72,7 +82,7 @@ func (svc *Post) Create(
 }
 
 // TODO: implement WithLikeCount/WithCommentCount options
-func (svc *Post) GetWithCounts(ctx context.Context, id uuid.UUID) (model.Post, error) {
+func (svc *DefaultPost) GetWithCounts(ctx context.Context, id uuid.UUID) (model.Post, error) {
 	fail := func(err error) (model.Post, error) {
 		return model.Post{}, fmt.Errorf("get post: %w", err)
 	}
@@ -102,7 +112,7 @@ func (svc *Post) GetWithCounts(ctx context.Context, id uuid.UUID) (model.Post, e
 
 var ErrPostsPaginationLimitInvalid = errors.New("posts pagination limit invalid")
 
-func (svc *Post) GetFeed(
+func (svc *DefaultPost) GetFeed(
 	ctx context.Context, authorID uuid.UUID, cursor model.Cursor, limit int,
 ) ([]model.Post, *model.Cursor, error) {
 	fail := func(err error) ([]model.Post, *model.Cursor, error) {

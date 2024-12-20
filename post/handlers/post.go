@@ -14,7 +14,10 @@ import (
 	"strconv"
 	"time"
 
-	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"smapp/common/validation"
+
+	ozzo "github.com/go-ozzo/ozzo-validation/v4"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
@@ -25,21 +28,21 @@ type CreatePostRequestBody struct {
 }
 
 func (post *CreatePostRequestBody) Validate() error {
-	return validation.ValidateStruct(
+	return ozzo.ValidateStruct(
 		post,
-		validation.Field(
+		ozzo.Field(
 			&post.Body,
-			validation.When(
+			ozzo.When(
 				len(post.Images) == 0,
-				validation.Required.Error("body or imageURLs is required"),
+				ozzo.Required.Error("body or imageURLs is required"),
 			),
-			validation.Length(1, 5000),
+			ozzo.Length(1, 5000),
 		),
-		validation.Field(
+		ozzo.Field(
 			&post.Images,
-			validation.When(
+			ozzo.When(
 				post.Body == "",
-				validation.By(func(value interface{}) error {
+				ozzo.By(func(value interface{}) error {
 					urls := value.([]model.ImageLocation)
 					if len(urls) == 0 {
 						return errors.New("body or imageURLs is required")
@@ -47,8 +50,8 @@ func (post *CreatePostRequestBody) Validate() error {
 					return nil
 				}),
 			),
-			validation.Each(
-				validation.By(func(value interface{}) error {
+			ozzo.Each(
+				ozzo.By(func(value interface{}) error {
 					image := value.(model.ImageLocation)
 					return image.Validate()
 				}),
@@ -57,7 +60,7 @@ func (post *CreatePostRequestBody) Validate() error {
 	)
 }
 
-func CreatePost(postService *service.Post) http.Handler {
+func CreatePost(validator validation.Validator, postService service.Post) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var post CreatePostRequestBody
 		err := json.NewDecoder(r.Body).Decode(&post)
@@ -65,15 +68,20 @@ func CreatePost(postService *service.Post) http.Handler {
 			jsonresp.Error(w, "Invalid JSON body", http.StatusBadRequest)
 			return
 		}
-		err = post.Validate()
-		if err != nil {
-			if e, ok := err.(validation.InternalError); ok {
-				log.Println(e.InternalError())
-				jsonresp.ErrorWithDefaultMessage(w, http.StatusInternalServerError)
-				return
+		err = validator.Validate(&post)
+		if errs, ok := err.(ozzo.Errors); ok {
+			errs := errs.Filter().(ozzo.Errors)
+			response := map[string]interface{}{
+				"status":  "error",
+				"message": "Validation failed",
+				"errors":  errs,
 			}
-			errors := (err.(validation.Errors).Filter()).(validation.Errors)
-			jsonresp.ValidationError(w, errors, http.StatusBadRequest)
+			jsonresp.Response(w, response, http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			log.Println(err)
+			jsonresp.ErrorWithDefaultMessage(w, http.StatusInternalServerError)
 			return
 		}
 
@@ -114,7 +122,7 @@ func CreatePost(postService *service.Post) http.Handler {
 	})
 }
 
-func GetPost(postService *service.Post) http.Handler {
+func GetPost(postService service.Post) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		postID, err := uuid.Parse(mux.Vars(r)["post_id"])
 		if err != nil {
@@ -152,7 +160,7 @@ func GetPost(postService *service.Post) http.Handler {
 	})
 }
 
-func GetFeed(postService *service.Post) http.HandlerFunc {
+func GetFeed(postService service.Post) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authorID, err := commonmw.GetUserID(r.Context())
 		if err != nil {
