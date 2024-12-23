@@ -11,15 +11,22 @@ import (
 	"github.com/google/uuid"
 )
 
-type Post struct {
+type Post interface {
+	Create(ctx context.Context, body string, authorID uuid.UUID, images []model.ImageLocation) (uuid.UUID, error)
+	CheckExists(ctx context.Context, id uuid.UUID) error
+	Get(ctx context.Context, id uuid.UUID) (model.Post, error)
+	GetWithCountsByUserIDs(ctx context.Context, userIDs []uuid.UUID, cursor model.Cursor, limit int) ([]model.Post, *model.Cursor, error)
+}
+
+type DefaultPost struct {
 	db *sql.DB
 }
 
-func NewPost(db *sql.DB) *Post {
-	return &Post{db: db}
+func NewDefaultPost(db *sql.DB) *DefaultPost {
+	return &DefaultPost{db: db}
 }
 
-func (p *Post) Create(ctx context.Context, body string, authorID uuid.UUID, images []model.ImageLocation) (uuid.UUID, error) {
+func (p *DefaultPost) Create(ctx context.Context, body string, authorID uuid.UUID, images []model.ImageLocation) (uuid.UUID, error) {
 	fail := func(err error) (uuid.UUID, error) {
 		return uuid.Nil, fmt.Errorf("add post to db: %w", err)
 	}
@@ -63,7 +70,7 @@ func (p *Post) Create(ctx context.Context, body string, authorID uuid.UUID, imag
 	return id, nil
 }
 
-func (p *Post) CheckExists(ctx context.Context, id uuid.UUID) error {
+func (p *DefaultPost) CheckExists(ctx context.Context, id uuid.UUID) error {
 	fail := func(err error) error {
 		return fmt.Errorf("check if post exists in db: %w", err)
 	}
@@ -83,7 +90,7 @@ func (p *Post) CheckExists(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (p *Post) getImagesByPostID(ctx context.Context, postID uuid.UUID) ([]model.ImageLocation, error) {
+func (p *DefaultPost) getImagesByPostID(ctx context.Context, postID uuid.UUID) ([]model.ImageLocation, error) {
 	fail := func(err error) ([]model.ImageLocation, error) {
 		return nil, fmt.Errorf("get images by post id from db: %w", err)
 	}
@@ -110,7 +117,7 @@ func (p *Post) getImagesByPostID(ctx context.Context, postID uuid.UUID) ([]model
 	return images, nil
 }
 
-func (p *Post) Get(ctx context.Context, id uuid.UUID) (model.Post, error) {
+func (p *DefaultPost) Get(ctx context.Context, id uuid.UUID) (model.Post, error) {
 	fail := func(err error) (model.Post, error) {
 		return model.Post{}, fmt.Errorf("get post from db: %w", err)
 	}
@@ -137,7 +144,7 @@ func (p *Post) Get(ctx context.Context, id uuid.UUID) (model.Post, error) {
 	return post, nil
 }
 
-func (p *Post) GetWithCountsByUserIDs(
+func (p *DefaultPost) GetWithCountsByUserIDs(
 	ctx context.Context, userIDs []uuid.UUID, cursor model.Cursor, limit int,
 ) ([]model.Post, *model.Cursor, error) {
 	fail := func(err error) ([]model.Post, *model.Cursor, error) {

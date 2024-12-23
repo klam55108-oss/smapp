@@ -26,7 +26,7 @@ type Post interface {
 }
 
 type DefaultPost struct {
-	postRepository    *repository.Post
+	postRepository    repository.Post
 	commentRepository *repository.Comment
 	likeRepository    *repository.Like
 	userClient        userPB.UserClient
@@ -34,7 +34,7 @@ type DefaultPost struct {
 }
 
 func NewDefaultPost(
-	postRepository *repository.Post, commentRepository *repository.Comment, likeRepository *repository.Like,
+	postRepository repository.Post, commentRepository *repository.Comment, likeRepository *repository.Like,
 	userClient userPB.UserClient, imageClient imagePB.ImageClient,
 ) *DefaultPost {
 	return &DefaultPost{

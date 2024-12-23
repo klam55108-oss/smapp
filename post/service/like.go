@@ -19,7 +19,7 @@ type Like struct {
 	errEntityNotFound error
 }
 
-func NewPostLike(likeRepository *repository.Like, postRepository *repository.Post) *Like {
+func NewPostLike(likeRepository *repository.Like, postRepository repository.Post) *Like {
 	return &Like{
 		likeRepository:    likeRepository,
 		entityRepository:  postRepository,

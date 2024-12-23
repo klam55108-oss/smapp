@@ -13,10 +13,10 @@ import (
 
 type Comment struct {
 	commentRepository *repository.Comment
-	postRepository    *repository.Post
+	postRepository    repository.Post
 }
 
-func NewComment(commentRepository *repository.Comment, postRepository *repository.Post) *Comment {
+func NewComment(commentRepository *repository.Comment, postRepository repository.Post) *Comment {
 	return &Comment{
 		commentRepository: commentRepository,
 		postRepository:    postRepository,

@@ -98,7 +98,7 @@ func main() {
 	defer conn.Close()
 	imageClient := imagePB.NewImageClient(conn)
 
-	postRepository := repository.NewPost(db)
+	postRepository := repository.NewDefaultPost(db)
 	commentRepository := repository.NewComment(db)
 	postLikeRepository := repository.NewPostLike(db)
 	commentLikeRepository := repository.NewCommentLike(db)
