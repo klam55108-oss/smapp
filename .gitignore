@@ -1,6 +1,7 @@
 /secrets/
 .DS_Store
 *.pb.go
+**/mocks/
 *.env
 docker-compose.yml
 *.pem

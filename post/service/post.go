@@ -15,6 +15,8 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate mockgen -destination mocks/post.go -package mocks . Post
+
 type Post interface {
 	Create(
 		ctx context.Context, body string, authorID uuid.UUID, images []model.ImageLocation,
