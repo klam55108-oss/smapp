@@ -1,0 +1,8 @@
+region                 = "eu-north-1"
+elb_availability_zones = ["eu-north-1a", "eu-north-1b", "eu-north-1c"]
+instances = [
+  { name = "instance-0", availability_zone = "eu-north-1a", is_gateway = true, is_manager = true },
+  { name = "instance-1", availability_zone = "eu-north-1b", is_gateway = true, is_manager = true },
+  { name = "instance-2", availability_zone = "eu-north-1c", is_gateway = true, is_manager = true },
+]
+bucket_name = "some-bucket"

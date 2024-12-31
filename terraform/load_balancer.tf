@@ -39,10 +39,11 @@ resource "aws_lb_target_group" "elb_tg" {
 }
 
 resource "aws_lb_target_group_attachment" "elb_tg_attachment" {
-  count            = var.instance_count
+  count            = length(local.gateway_instance_indices)
   target_group_arn = aws_lb_target_group.elb_tg.arn
-  target_id        = aws_instance.instance[count.index].id
-  port             = 80
+  # Target group should only contain instances that act as a gateway
+  target_id = aws_instance.instance[local.gateway_instance_indices[count.index]].id
+  port      = 80
 }
 
 resource "aws_lb_listener" "elb_listener" {

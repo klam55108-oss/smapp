@@ -79,13 +79,21 @@ resource "aws_key_pair" "instance_key_pair" {
 }
 
 resource "aws_instance" "instance" {
-  count                  = var.instance_count
+  count                  = length(var.instances)
   ami                    = "ami-02df5cb5ad97983ba"
   instance_type          = "t3.micro"
+  availability_zone      = var.instances[count.index].availability_zone
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
   key_name               = aws_key_pair.instance_key_pair.key_name
   iam_instance_profile   = aws_iam_instance_profile.ec2_iam_profile.name
   tags = {
-    Name = "instance${count.index}"
+    Name = var.instances[count.index].name
   }
+}
+
+locals {
+  gateway_instance_indices = [
+    for i in range(length(var.instances)) : i
+    if var.instances[i].is_gateway == true
+  ]
 }

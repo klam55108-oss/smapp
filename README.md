@@ -1,20 +1,15 @@
 # Smapp
 A microservice backend written in Go for a social media app.
 
-The goal of this project is to better understand microservice architecture by building a scalable backend and deploying it to a cluster of virtual machines.
-
 ## Table of contents
 - [Features](#features)
-- [Technologies](#technologies)
 - [Running the Application](#running-the-application)
   - [Running with Docker Compose](#running-with-docker-compose)
   - [Running with Docker Swarm](#running-with-docker-swarm)
   - [Applying Database Migrations](#applying-database-migrations)
 - [Deploying on AWS](#deploying-on-aws)
+  - [Creating Infrastructure](#creating-infrastructure)
   - [Deployment](#deployment)
-  - [Application Load Balancer](#application-load-balancer)
-  - [Security groups](#security-groups)
-  - [IAM role](#iam-role)
 
 
 ## Features
@@ -22,14 +17,6 @@ The goal of this project is to better understand microservice architecture by bu
 - Post creation, comment/like functionality and statistics
 - Presigned links for the frontend to upload post images
 - Following functionality and paginated feed
-
-## Technologies
-- Go, with the `net/http` package for request handling
-- gRPC for inter-service communication
-- MySQL for data storage
-- Docker Swarm for container orchestration
-- Amazon EC2 and Application Load Balancer for deployment
-- Amazon S3 for image uploading and storage
 
 ## Running the Application
 
@@ -112,25 +99,24 @@ flyway -url=jdbc:mysql://post_db:3306/post_db?allowPublicKeyRetrieval=true -user
 
 ## Deploying on AWS
 
-### Deployment
+### Creating Infrastructure
 
-To install the necessary packages on EC2 instances before deploying the Swarm, run:
+Ensure that you have AWS credentials configured with necessary permissions. Then run:
+
 ```bash
-./deployment/install.sh <EC2_INSTANCE_IP> <SSH_PRIVATE_KEY_FILE>
+cd terraform
+terraform init
+terraform apply
 ```
 
-Then follow [these instructions](#run-images-on-a-swarm) to deploy the Swarm.
+Enter the variable values when prompted. You can also specify them in a `terraform/variables.tfvars` file (see `terraform/variables.tfvars.example`).
 
-### Application Load Balancer
-Create an Application Load Balancer instance with a target group consisting of the gateway instances (the ones where `set_gateway.sh` was executed). Configure health checks for the target group to use the `/ping` path.
+### Deployment
 
-### Security Groups
-The security group attached to the load balancer instance should allow incoming TCP traffic on port 80.
+To install the necessary packages, create a Swarm and mark necessary nodes as gateways, run:
+```bash
+terraform output -raw ssh_key | ssh-add -
+terraform output -json | (cd ../deployment; go run ./cmd/install_all/main.go)
+```
 
-The security group attached to EC2 instances should allow following traffic:
-- TCP on port 80 from the load balancer instance's security group
-- TCP/UDP on port 7946, UDP on port 4789, TCP on port 2377 for Swarm inter-node communication
-- TCP on port 3306 for MySQL
-
-### IAM Role
-The EC2 instances should have an IAM role attached with the `AmazonEC2ContainerRegistryFullAccess` and `AmazonS3FullAccess` policies.
+Then run ```./deployment/scripts/deploy.sh <REGISTRY URL>``` from one of the nodes.

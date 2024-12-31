@@ -5,7 +5,7 @@ resource "aws_default_vpc" "default" {
 }
 
 resource "aws_default_subnet" "default" {
-  for_each          = var.availability_zones
+  for_each          = var.elb_availability_zones
   availability_zone = each.key
 
   tags = {

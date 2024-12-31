@@ -1,7 +1,5 @@
 # Works for Amazon Linux machines
 
-# Executed on remote machine
-
 # Usage: cd smapp && ./deployment/init_swarm.sh
 
 docker swarm init
