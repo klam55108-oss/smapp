@@ -115,7 +115,6 @@ Enter the variable values when prompted. You can also specify them in a `terrafo
 
 To install the necessary packages, create a Swarm and mark necessary nodes as gateways, run:
 ```bash
-terraform output -raw ssh_key | ssh-add -
 terraform output -json | (cd ../deployment; go run ./cmd/install_all/main.go)
 ```
 

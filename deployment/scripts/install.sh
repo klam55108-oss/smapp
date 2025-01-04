@@ -2,8 +2,8 @@ sudo yum update -y
 sudo yum install -y docker
 sudo service docker start
 sudo usermod -a -G docker ec2-user
-# Start a new shell session to apply group changes
-exec sudo su -l ec2-user << EOF
+# Start a subshell with docker group
+sg docker << EOF
 # Install gomplate
 sudo curl -o /usr/bin/gomplate -sSL https://github.com/hairyhenderson/gomplate/releases/latest/download/gomplate_linux-amd64
 sudo chmod 755 /usr/bin/gomplate
