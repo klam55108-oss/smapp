@@ -12,15 +12,15 @@ import (
 )
 
 type GenerateUploadForm struct {
-	creds     *aws.Credentials
+	cfg       aws.Config
 	policyTTL time.Duration
 	bucket    string
 	region    string
 }
 
-func NewGenerateUploadForm(creds *aws.Credentials, policyTTL time.Duration, bucket, region string) *GenerateUploadForm {
+func NewGenerateUploadForm(cfg aws.Config, policyTTL time.Duration, bucket, region string) *GenerateUploadForm {
 	return &GenerateUploadForm{
-		creds:     creds,
+		cfg:       cfg,
 		policyTTL: policyTTL,
 		bucket:    bucket,
 		region:    region,
@@ -32,6 +32,11 @@ func (svc *GenerateUploadForm) GetForm(ctx context.Context, imgPurpose string, u
 		return nil, fmt.Errorf("get upload form: %w", err)
 	}
 
+	creds, err := svc.cfg.Credentials.Retrieve(ctx)
+	if err != nil {
+		return fail(err)
+	}
+
 	id, err := uuid.NewRandom()
 	if err != nil {
 		return fail(err)
@@ -39,7 +44,7 @@ func (svc *GenerateUploadForm) GetForm(ctx context.Context, imgPurpose string, u
 	key := fmt.Sprintf("images/%s/%s/%s", imgPurpose, userID, id)
 
 	signDateStamp := time.Now().UTC().Format("20060102")
-	credential := fmt.Sprintf("%s/%s/%s/s3/aws4_request", svc.creds.AccessKeyID, signDateStamp, svc.region)
+	credential := fmt.Sprintf("%s/%s/%s/s3/aws4_request", creds.AccessKeyID, signDateStamp, svc.region)
 	date := fmt.Sprintf("%sT000000Z", signDateStamp)
 
 	policy := map[string]interface{}{
@@ -53,6 +58,7 @@ func (svc *GenerateUploadForm) GetForm(ctx context.Context, imgPurpose string, u
 			map[string]string{"x-amz-credential": credential},
 			map[string]string{"x-amz-date": date},
 			map[string]string{"x-amz-storage-class": "STANDARD"},
+			map[string]string{"x-amz-security-token": creds.SessionToken},
 		},
 	}
 
@@ -63,13 +69,14 @@ func (svc *GenerateUploadForm) GetForm(ctx context.Context, imgPurpose string, u
 	policyBase64 := base64.StdEncoding.EncodeToString(policyJSON)
 
 	result := map[string]interface{}{
-		"key":                 key,
-		"policy":              policyBase64,
-		"x-amz-algorithm":     "AWS4-HMAC-SHA256",
-		"x-amz-credential":    credential,
-		"x-amz-date":          date,
-		"x-amz-signature":     signPolicy(policyBase64, svc.creds.SecretAccessKey, signDateStamp, svc.region),
-		"x-amz-storage-class": "STANDARD",
+		"key":                  key,
+		"policy":               policyBase64,
+		"x-amz-algorithm":      "AWS4-HMAC-SHA256",
+		"x-amz-credential":     credential,
+		"x-amz-date":           date,
+		"x-amz-signature":      signPolicy(policyBase64, creds.SecretAccessKey, signDateStamp, svc.region),
+		"x-amz-storage-class":  "STANDARD",
+		"x-amz-security-token": creds.SessionToken,
 	}
 	return result, nil
 }

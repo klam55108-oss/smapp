@@ -46,12 +46,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	creds, err := cfg.Credentials.Retrieve(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	generateUploadFormService := service.NewGenerateUploadForm(&creds, policyTTL, bucket, region)
+	generateUploadFormService := service.NewGenerateUploadForm(cfg, policyTTL, bucket, region)
 
 	r := mux.NewRouter()
 	r.Handle(
