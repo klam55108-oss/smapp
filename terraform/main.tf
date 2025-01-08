@@ -14,5 +14,5 @@ provider "aws" {
 }
 
 locals {
-  services = toset(["traefik", "user", "user_grpc", "post", "image", "image_grpc"])
+  services = toset(["traefik", "user", "user-grpc", "post", "image", "image-grpc"])
 }

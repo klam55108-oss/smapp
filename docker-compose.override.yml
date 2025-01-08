@@ -11,7 +11,7 @@ services:
         - action: rebuild
           path: common
 
-  user_grpc:
+  user-grpc:
     develop:
       watch:
         - action: rebuild
@@ -37,7 +37,7 @@ services:
         - action: rebuild
           path: common
 
-  image_grpc:
+  image-grpc:
     volumes:
       - ~/.aws:/root/.aws
     develop:

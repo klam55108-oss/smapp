@@ -1,16 +1,16 @@
 # Contains environment variables for production. These environment variables would typically be stored in .env file in development. Sensitive information is stored in Docker Swarm secrets.
 
 x-user-env: &user-env
-  MYSQL_HOST: user_db
+  MYSQL_HOST: user-db
   MYSQL_USER: root
-  MYSQL_DB: user_db
+  MYSQL_DB: user-db
   JWT_TTL: 24h
   DEFAULT_TIMEOUT: 5s
 
 x-post-env: &post-env
-  MYSQL_HOST: post_db
+  MYSQL_HOST: post-db
   MYSQL_USER: root
-  MYSQL_DB: post_db
+  MYSQL_DB: post-db
   DEFAULT_TIMEOUT: 5s
 
 x-image-env: &image-env
@@ -25,7 +25,7 @@ services:
   user:
     environment:
       <<: *user-env
-  user_grpc:
+  user-grpc:
     environment:
       <<: *user-env
   post:
@@ -34,6 +34,6 @@ services:
   image:
     environment:
       <<: *image-env
-  image_grpc:
+  image-grpc:
     environment:
       <<: *image-env

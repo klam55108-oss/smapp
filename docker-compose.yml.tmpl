@@ -104,7 +104,7 @@ services:
     image: ${REGISTRY}/user
     {{- end }}
     depends_on:
-      - user_db
+      - user-db
     secrets:
       - mysql_password
       - jwt_private_key
@@ -119,16 +119,16 @@ services:
       - user/.env
     {{- end }}
   
-  user_grpc:
+  user-grpc:
     build:
       context: .
       dockerfile: user/cmd/grpc/Dockerfile
       <<: *platforms
     {{- if $use_registry }}
-    image: ${REGISTRY}/user_grpc
+    image: ${REGISTRY}/user-grpc
     {{- end }}
     depends_on:
-      - user_db
+      - user-db
     {{- if $deploy }}
     deploy:
       # On DNS query, return all replicas' IPs, instead of a single virtual IP to use gRPC's load balancer.
@@ -140,21 +140,21 @@ services:
     secrets:
       - mysql_password
 
-  user_db:
+  user-db:
     image: mysql:8.0
     environment:
-      - MYSQL_DATABASE=user_db
+      - MYSQL_DATABASE=user-db
       - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mysql_password
     secrets:
       - mysql_password
 
-  user_db_migrations:
-    container_name: user_db_migrations
+  user-db-migrations:
+    container_name: user-db-migrations
     image: flyway/flyway
     volumes:
       - ./user/migrations:/flyway/sql
     depends_on:
-      - user_db
+      - user-db
     entrypoint: ["tail", "-f", "/dev/null"]
     secrets:
       - mysql_password
@@ -168,7 +168,7 @@ services:
     image: ${REGISTRY}/post
     {{- end }}
     depends_on:
-      - post_db
+      - post-db
     secrets:
       - mysql_password
     {{- if $deploy }}
@@ -182,21 +182,21 @@ services:
       - post/.env
     {{- end }}
 
-  post_db:
+  post-db:
     image: mysql:8.0
     environment:
-      - MYSQL_DATABASE=post_db
+      - MYSQL_DATABASE=post-db
       - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mysql_password
     secrets:
       - mysql_password
 
-  post_db_migrations:
-    container_name: post_db_migrations
+  post-db-migrations:
+    container_name: post-db-migrations
     image: flyway/flyway
     volumes:
       - ./post/migrations:/flyway/sql
     depends_on:
-      - post_db
+      - post-db
     entrypoint: ["tail", "-f", "/dev/null"]
     secrets:
       - mysql_password
@@ -225,13 +225,13 @@ services:
       - ~/.aws:/root/.aws
     {{- end }}
   
-  image_grpc:
+  image-grpc:
     build:
       context: .
       dockerfile: image/cmd/grpc/Dockerfile
       <<: *platforms
     {{- if $use_registry }}
-    image: ${REGISTRY}/image_grpc
+    image: ${REGISTRY}/image-grpc
     {{- end }}
     {{- if $deploy }}
     deploy:

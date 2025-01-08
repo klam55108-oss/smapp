@@ -88,13 +88,13 @@ Finally, deploy the application from one of the manager nodes:
 
 To apply database migrations, use the Flyway migration tool from within the appropriate container.
 
-From the `user_db_migrations` container:
+From the `user-db-migrations` container:
 ```bash
-flyway -url=jdbc:mysql://user_db:3306/user_db?allowPublicKeyRetrieval=true -user=root -password=$(cat /run/secrets/mysql_password) migrate
+flyway -url=jdbc:mysql://user-db:3306/user-db?allowPublicKeyRetrieval=true -user=root -password=$(cat /run/secrets/mysql_password) migrate
 ```
-From the `post_db_migrations` container:
+From the `post-db-migrations` container:
 ```bash
-flyway -url=jdbc:mysql://post_db:3306/post_db?allowPublicKeyRetrieval=true -user=root -password=$(cat /run/secrets/mysql_password) migrate
+flyway -url=jdbc:mysql://post-db:3306/post-db?allowPublicKeyRetrieval=true -user=root -password=$(cat /run/secrets/mysql_password) migrate
 ```
 
 ## Deploying on AWS

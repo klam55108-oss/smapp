@@ -77,7 +77,7 @@ func main() {
 	defer db.Close()
 
 	conn, err := grpc.NewClient(
-		"user_grpc:50051",
+		"user-grpc:50051",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultServiceConfig(`{"loadBalancingConfig": [{"round_robin":{}}]}`),
 	)
@@ -88,7 +88,7 @@ func main() {
 	userClient := userPB.NewUserClient(conn)
 
 	conn, err = grpc.NewClient(
-		"image_grpc:50051",
+		"image-grpc:50051",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultServiceConfig(`{"loadBalancingConfig": [{"round_robin":{}}]}`),
 	)
